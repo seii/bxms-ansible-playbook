@@ -1,0 +1,16 @@
+- name: Add accept input configuration lines
+  lineinfile:
+    path: "{{ iptables_conf }}"
+    line: >-
+      -A INPUT
+      -m state
+      --state NEW
+      -m {{ proto }}
+      -p {{ proto }}
+      --dport {{ item.port }}
+      -j ACCEPT
+    insertafter: '^# Add customer requested ports after this line$'
+  with_items: "{{ iptables_accept_input }}"
+  vars:
+    proto: "{{ item.proto | default('tcp') }}"
+  notify: restart iptables

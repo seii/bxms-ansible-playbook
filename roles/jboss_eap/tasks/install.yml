@@ -1,0 +1,16 @@
+---
+
+- include: install_prereqs.yml
+  static: true
+
+- include: jboss_eap_user.yml
+  static: true
+
+- include: jboss_directories.yml
+  static: true
+
+- include: install_eap.yml
+  static: true
+
+- include: patch_eap.yml
+  static: true

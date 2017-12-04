@@ -1,0 +1,86 @@
+---
+## This playbook currently:
+#  - Stops the EAP server
+#  - Removes the EAP folder (which also removes all deployments)
+#  - Removes the Linux service for EAP
+##
+
+- hosts: jboss_eap_hosts
+  gather_facts: false
+
+  tasks:
+    - name: Discover paths for current EAP files and folders
+      include_role:
+        name: jboss_eap
+        tasks_from: set_facts
+
+    - name: Stopping JBoss EAP
+      service:
+        name: "{{ jboss_eap_service_name }}"
+        state: stopped
+
+    - name: Removing {{ jboss_eap_install_base_dir }} folder
+      file:
+        state: absent
+        path: "{{ jboss_eap_install_base_dir }}"
+
+    - name: Removing EAP log files
+      file:
+        state: absent
+        path: "{{ jboss_service_log_dir }}"
+
+    - name: Removing {{ jboss_eap_service_name }} configuration folder
+      file:
+        state: absent
+        path: "{{ jboss_service_conf_dir }}"
+
+    - name: Removing EAP service data folder
+      file:
+        state: absent
+        path: "{{ jboss_service_data_dir }}"
+
+    - name: Removing {{ jboss_eap_service_name }} service
+      file:
+        state: absent
+        path: "{{ jboss_service_file }}"
+
+    - name: Removing EAP artifact
+      file:
+        state: absent
+        path: "{{ jboss_eap_install_temp_dir }}/{{ jboss_eap_artifact_name }}.zip"
+
+    - name: Removing EAP patch
+      file:
+        state: absent
+        path: "{{ jboss_eap_install_temp_dir }}/{{ jboss_eap_patch_name }}.zip"
+
+    - name: Removing BPMS artifact
+      file:
+        state: absent
+        path: "{{ jboss_eap_install_temp_dir }}/{{ jboss_bxms_artifact_name }}.zip"
+
+    - name: Removing BPMS patch folder
+      file:
+        state: absent
+        path: "{{ jboss_eap_install_temp_dir }}/{{ jboss_bxms_patch_name }}"
+
+    - name: Removing created SSL key
+      file:
+        state: absent
+        path: "/etc/pki/tls/private/{{ inventory_hostname }}.key"
+
+    - name: Removing created SSL CSR
+      file:
+        state: absent
+        path: "/etc/pki/tls/private/{{ inventory_hostname }}.csr"
+
+    - name: Remove JBoss EAP User
+      user:
+        name: "{{ jboss_eap_user }}"
+        state: absent
+        remove: yes
+
+    - name: Remove JBoss EAP Group
+      group:
+        name: "{{ jboss_eap_group }}"
+        state: absent

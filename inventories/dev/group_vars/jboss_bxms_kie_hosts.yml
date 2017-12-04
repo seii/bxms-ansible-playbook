@@ -1,0 +1,60 @@
+---
+
+###########################
+# INTRODUCTION
+# ------------
+# This file contains Ansible variables for setting up the JBoss BxMS component called "KIE Server".
+# Summaries of variable functions will be listed for each section.
+# Any values not set in this or other inventory files will be pulled from DEFAULT VALUES.
+# Any values needing an in-depth explanation will explain in DEFAULT VALUES.
+#
+# DEFAULT VALUES for iptables options are found in "<top level>/roles/iptables_mgmt/defaults/main.yml"
+# DEFAULT VALUES for EAP options are found in "<top level>/roles/jboss_eap/defaults/main.yml"
+# DEFAULT VALUES for BxMS options are found in "<top level>/roles/jboss_bxms/defaults/main.yml"
+###########################
+
+###########################
+# KIE SERVER INSTALLATION TYPE
+# ----------------------------------
+# There are 4 general installation types for a single KIE Server installation.
+#
+# UNIFIED EXECUTION SERVER:
+# - Business Central is installed
+# - KIE Server is installed
+# - Both share a single database
+# - Certain system properties are set
+#
+# UNMANAGED KIE SERVER:
+# - KIE Server is installed
+# - KIE Server has sole control of a database of its own
+#
+# MANAGED KIE SERVER:
+# - KIE Server is installed
+# - KIE Server may share a database with other managed KIE Server instances
+# - KIE Server may _not_ share a database with any BC instances
+# - KIE Server must be pointed at a BC instance which will manage it
+# - Certain system properties are set
+#
+# NONE (BUSINESS CENTRAL AS STANDALONE OR MANAGER):
+# - KIE Server is not installed
+# - Only Business Central will have a database
+#
+# Uncomment the option below as appropriate for your desired environment.
+#
+###########################
+#jboss_bxms_kie_installation_type: "unified"
+jboss_bxms_kie_installation_type: "unmanaged"
+#jboss_bxms_kie_installation_type: "managed"
+#jboss_bxms_kie_installation_type: "none"
+
+jboss_eap_properties_files: []
+
+###########################
+# CUSTOM LIBRARIES
+# ---------------------------------
+# It is possible to include external JAR libraries for use in KIE Server processes.
+#
+# jboss_bxms_business_central_custom_libs = If provided, this JAR(s) will be deployed into a discoverable location within KIE Server
+# 
+###########################
+jboss_bxms_kie_server_custom_libs: []

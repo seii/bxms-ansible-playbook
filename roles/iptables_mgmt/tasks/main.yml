@@ -1,0 +1,18 @@
+---
+- name: Check if iptables is configured
+  stat:
+    path: "{{ iptables_conf }}"
+  register: check_iptables_configured
+
+- name: Backup existing iptables configuration
+    copy:
+      src: "{{ iptables_conf }}"
+      dest: "{{ iptables_conf }}.bak"
+      owner: "{{ jboss_eap_user }}"
+      group: "{{ jboss_eap_group }}"
+      mode: 0644
+    check_mode: no
+
+- include: configure_iptables.yml
+  static: false
+  when: check_iptables_configured.stat.exists

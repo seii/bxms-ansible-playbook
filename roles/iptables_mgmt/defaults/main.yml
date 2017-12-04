@@ -1,0 +1,11 @@
+---
+
+###########################
+# FIREWALL SETTINGS
+# -----------------
+# iptables_conf_dir = Location of iptables configuration folder
+# iptables_conf = Location of iptables configuration file
+# 
+###########################
+iptables_conf_dir: /etc/sysconfig
+iptables_conf: "{{ iptables_conf_dir }}/iptables"

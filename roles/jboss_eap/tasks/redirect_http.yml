@@ -1,0 +1,83 @@
+---
+- name: Read redirect-http rewrite filter
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=undertow/configuration=filter/rewrite=redirect-http:read-resource
+  register: read_redirect_http
+  until: >-
+    read_redirect_http.rc == 0 or
+    'not found' in read_redirect_http.stdout
+  retries: 5
+  check_mode: no
+  changed_when: false
+  failed_when: >-
+    read_redirect_http.rc != 0 and
+    'not found' not in read_redirect_http.stdout
+
+- name: Define redirect-http rewrite filter
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: '/subsystem=undertow/configuration=filter/rewrite=redirect-http:add(redirect="true",target="{{ jboss_eap_http_redirect | default("") }}")'
+  when: >-
+    jboss_eap_http_redirect is defined and
+    read_redirect_http.rc != 0
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Update redirect-http rewrite filter
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: '/subsystem=undertow/configuration=filter/rewrite=redirect-http:write-attribute(name=target,value="{{ jboss_eap_http_redirect }}")'
+    redirect_http: >-
+      {{ read_redirect_http.stdout | parse_jbosscli_output }}
+  when: >-
+    jboss_eap_http_redirect is defined and
+    read_redirect_http.rc == 0 and
+    redirect_http.result.target != jboss_eap_http_redirect
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Read default-server redirect-http filter-ref
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=undertow/server=default-server/host=default-host/filter-ref=redirect-http:read-resource
+  register: read_default_server_http_filter
+  until: >-
+    read_default_server_http_filter.rc == 0 or
+    'not found' in read_redirect_http.stdout
+  retries: 5
+  check_mode: no
+  changed_when: false
+  failed_when: >-
+    read_default_server_http_filter.rc != 0 and
+    'not found' not in read_redirect_http.stdout
+
+- name: Define default-server redirect-http filter-ref
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: '/subsystem=undertow/server=default-server/host=default-host/filter-ref=redirect-http:add(predicate="equals(%p,{{jboss_eap_bind_port_http}})")'
+  when:
+    jboss_eap_http_redirect is defined and
+    read_default_server_http_filter.rc != 0
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Remove default-server redirect-http filter-ref
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: '/subsystem=undertow/server=default-server/host=default-host/filter-ref=redirect-http:remove'
+  when:
+    not jboss_eap_http_redirect is defined and
+    read_default_server_http_filter.rc == 0
+  notify: "{{ restart_jboss_handler }}"

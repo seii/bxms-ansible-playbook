@@ -1,0 +1,22 @@
+---
+
+- name: Get url for custom library {{ custom_lib.name }}
+  get_url:
+    dest: "{{ custom_lib_dir }}/{{ custom_lib.name }}"
+    url: "{{ custom_lib.url }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    mode: u=rw,g=r,o=
+  when: custom_lib.url is defined
+  notify: "{{ restart_jboss_handler }}"
+
+
+- name: Copy custom library {{ custom_lib.name }} to {{ custom_lib.dest }}
+  copy:
+    src: "{{ custom_lib.src }}"
+    dest: "{{ custom_lib_dir }}/{{ custom_lib.name }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    mode: u=rw,g=r,o=
+  when: custom_lib.src is defined
+  notify: "{{ restart_jboss_handler }}"

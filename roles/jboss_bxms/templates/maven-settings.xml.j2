@@ -1,0 +1,47 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <localRepository>{{ jboss_bxms_maven_repo_dir }}/.m2/repository</localRepository>
+
+    <servers>
+{% for repo in maven_repos %}
+{% if repo.username is defined %}
+        <server>
+            <id>{{ repo.id }}</id>
+            <username>{{ repo.username }}</username>
+            <password>{{ repo.password }}</password>
+        </server>
+{% endif %}
+{% endfor %}
+    </servers>
+
+    <profiles>
+{% for repo in maven_repos %}
+        <profile>
+            <id>{{ repo.profile }}</id>
+            <repositories>
+                <repository>
+                    <id>{{ repo.id }}</id>
+                    <url>{{ repo.url }}</url>
+                    <releases>
+                        <enabled>{{ repo.release_enabled }}</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>{{ repo.snapshot_enabled }}</enabled>
+                        <updatePolicy>{{ repo.update_policy | default('daily') }}</updatePolicy>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+            </pluginRepositories>
+        </profile>
+{% endfor %}
+    </profiles>
+
+    <activeProfiles>
+{% for repo in maven_repos %}
+        <activeProfile>{{ repo.profile }}</activeProfile>
+{% endfor %}
+    </activeProfiles>
+
+</settings>

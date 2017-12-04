@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  author: Red Hat Consulting
+  description: Role to install JBoss BPM infrastructure
+  company: Red Hat
+  license: license (Apache)
+  min_ansible_version: 2.3.1.0
+  platforms:
+   - name: EL
+     versions:
+     - 7
+     - 6
+  categories:
+   - java
+   - jboss
+   - eap
+   - brms
+   - bpms
+   - bxms
+dependencies:
+  # Install JBoss EAP, but do not configure immediately
+  - role: jboss_eap
+    jboss_eap_configure: false

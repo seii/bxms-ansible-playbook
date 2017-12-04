@@ -1,0 +1,290 @@
+---
+
+###########################
+# BPMS INSTALLATION SOURCES
+# --------------------
+# This Ansible script supports two ways to obtain the BPMS source artifacts.
+#   Method 1 = Provide the artifacts in the "files" folder as ZIP archives
+#   Method 2 = Provide URLs where the artifacts can be downloaded from
+#
+# jboss_bxms_artifact_name = File name of the provided artifact without a file extension (Method 1)
+# jboss_bxms_artifact_source = "copy" (Method 1) or "download" (Method 2)
+# jboss_bxms_artifact_url = URL for downloading (Method 2)
+# jboss_bxms_artifact_checksum = MD5 checksum to verify that artifact is uncorrupted (Methods 1 & 2)
+# 
+###########################
+jboss_bxms_artifact_name: jboss-bpmsuite-6.4.0.GA-deployable-eap7.x
+jboss_bxms_artifact_source: copy
+jboss_bxms_artifact_url: http://fileserv.example.com/path/to/{{ jboss_bxms_artifact_name }}.zip
+jboss_bxms_artifact_checksum: md5:a3d28eaf23495cb37e9ecd136dfb0c2d
+
+###########################
+# BPMS PATCH SOURCES
+# --------------------
+# This Ansible script provides two ways to obtain the BPMS patch artifacts.
+#   Method 1 = Provide the artifacts in the "files" folder as ZIP archives
+#   Method 2 = Provide URLs where the artifacts can be downloaded from
+#
+# jboss_bxms_apply_patch = Whether to apply a patch at all (true/false)
+# jboss_bxms_patch_name = File name of the provided artifact without a file extension (Method 1)
+# jboss_bxms_patch_source = "copy" (Method 1) or "download" (Method 2)
+# jboss_bxms_patch_url = URL for downloading (Method 2)
+# jboss_bxms_patch_checksum = MD5 checksum to verify that artifact is uncorrupted (Methods 1 & 2)
+# 
+###########################
+jboss_bxms_apply_patch: true
+jboss_bxms_patch_name: jboss-bpmsuite-6.4.6-patch
+jboss_bxms_patch_source: copy
+jboss_bxms_patch_url: http://fileserv.example.com/path/to/{{ jboss_bxms_patch_name }}.zip
+jboss_bxms_patch_checksum: md5:2cbda304ddcd4c3c848da296d01425d6
+
+###########################
+# CUSTOM MAVEN REPOSITORIES
+# -------------------------
+# Specify custom Maven repositories for BxMS to use for pushing and pulling artifacts.
+#
+# jboss_bxms_use_custom_maven_settings = Whether to use custom Maven repositories (true/false)
+# jboss_bxms_maven_repo_dir = If provided, this path will be used to store the local Maven repository
+# jboss_bxms_maven_repos = If provided, this repository(s) will be added as custom Maven repositories
+# 
+###########################
+jboss_bxms_use_custom_maven_settings: false
+jboss_bxms_maven_repo_dir: "{{ jboss_eap_install_base_dir }}"
+# 
+# Example:
+# jboss_bxms_maven_repos:
+#   - profile: "nexus-foo-repo"
+#     id: "foo"
+#     url: "http://nexus.example.com/nexus/repository/foo/"
+#     release_enabled:  "true"
+#     snapshot_enabled: "true"
+#     username: redhat
+#     password: "{{ passwords.maven }}"
+jboss_bxms_maven_repos: []
+
+###########################
+# SECURITY DOMAINS
+# ----------------
+# Specify security domains to be used for BxMS components.
+#
+# jboss_bxms_business_central_security_domain = If provided, this domain will be used for authenticating with Business Central
+# jboss_bxms_dashbuilder_security_domain = If provided, this domain will be used for authenticating with Dashbuilder
+# jboss_bxms_kie_server_security_domain = If provided, this domain will be used for authenticating with KIE Server
+# 
+###########################
+jboss_bxms_business_central_security_domain: ""
+jboss_bxms_dashbuilder_security_domain: ""
+jboss_bxms_kie_server_security_domain: ""
+
+###########################
+# DATASOURCES
+# ----------------
+# jboss_bxms_business_central_jndi_name = If provided, this datasource will be used for persistence in Business Central
+# jboss_bxms_dashbuilder_jndi_name = If provided, this datasource will be used for persistence in Dashbuilder
+# jboss_bxms_kie_server_jndi_name = If provided, this datasource will be used for persistence in KIE Server
+# 
+###########################
+# Define data sources for BPM Suite components. The corresponding datasources
+# should be configured with `jboss_eap_datasources`.
+#
+# Example:
+#
+# jboss_bxms_business_central_jndi_name: java:jboss/datasources/businesscentralDS
+# jboss_bxms_dashbuilder_jndi_name: java:jboss/datasources/dashbuilderDS
+# jboss_bxms_kie_server_jndi_name: java:jboss/datasources/kieserverDS
+jboss_bxms_business_central_jndi_name: ""
+jboss_bxms_dashbuilder_jndi_name: ""
+jboss_bxms_kie_server_jndi_name: ""
+#
+# Example:
+#
+# jboss_eap_datasources:
+#   - name: "dashbuilderDS"
+#     type: xa-data-source
+#     connection_url: "jdbc:oracle:thin:@//devrac2.example.com:1551/dev.example.com"
+#     jndi_name: java:jboss/datasources/dashbuilderDS
+#     user_name: bpmdashboard
+#     password: "{{ passwords.oracle_dashbuilder }}"
+#     driver:
+#       type: "oracle"
+#       module_name: "com.oracle"
+#       module_jar: "ojdbc7.jar"
+#       driver_name: "oracle"
+#       driver_class: "oracle.jdbc.xa.client.OracleXADataSource"
+#
+jboss_eap_datasources: []
+
+###########################
+# PROPERTIES
+# ----------------
+# jboss_eap_jbpm_user_info_properties = If provided, this property(s) will be used by some applications for user authentication
+# jboss_eap_properties_files = If provided, this property file(s) will be added to the EAP configuration directory
+# jboss_eap_system_properties = If provided, this system property(s) will be added to the EAP configuration file
+# 
+###########################
+# Referenced in group_vars/jboss_bxms_bc_hosts.yml and
+# group_vars/jboss_bxms_kie_hosts.yml to configure jboss_eap_properties_files
+#
+# Example:
+#
+# jboss_eap_jbpm_user_info_properties:
+#   path: jbpm.user.info.properties
+#   properties:
+#     ldap.bind.user: s-Wlldapdev@example.com
+#     ldap.bind.pwd: "{{ example_passwords.ldapbind }}"
+#     ldap.user.ctx: ou=accounts,dc=example,dc=com
+#     ldap.role.ctx: ou=accounts,dc=example,dc=com
+#     ldap.user.filter: (sAMAccountName={0})
+#     ldap.role.filter: (cn={0})
+#     ldap.user.roles.filter: (member={0})
+#     ldap.user.attr.id: sAMAccountName
+#     ldap.role.attr.id: member
+#     ldap.name.attr.id: cn
+#     java.naming.provider.url: ldaps://example.com:636
+jboss_eap_jbpm_user_info_properties: {}
+#
+# Example:
+#
+# jboss_eap_properties_files:
+#   - "{{ jboss_eap_jbpm_user_info_properties}}"
+#   - path: jbpm-usergroup-callback.properties
+#     properties:
+#       java.naming.provider.url: ldaps://example.com:636
+#       ldap.bind.pwd: "{{ passwords.ldapbind }}"
+#       ldap.bind.user: s-Wlldapdev@example.com
+#       ldap.name.attr.id: cn
+#       ldap.role.ctx: ou=accounts,dc=example,dc=com
+#       ldap.role.filter: (cn={0})
+#       ldap.roles.attr.id: cn
+#       ldap.search.scope: SUBTREE_SCOPE
+#       ldap.user.attr.id: sAMAccountName
+#       ldap.user.ctx: ou=accounts,dc=example,dc=com
+#       ldap.user.filter: (sAMAccountName={0})
+#       ldap.user.roles.filter: (member={0})
+#   - path: quartz-definition.properties
+#     properties:
+#       org.quartz.scheduler.instanceName: jBPMClusteredScheduler
+#       org.quartz.scheduler.instanceId: AUTO
+#       org.quartz.threadPool.class: org.quartz.simpl.SimpleThreadPool
+#       org.quartz.threadPool.threadCount: 5
+#       org.quartz.threadPool.threadPriority: 5
+#       org.quartz.jobStore.misfireThreshold: 60000
+#       org.quartz.jobStore.class: org.quartz.impl.jdbcjobstore.JobStoreCMT
+#       org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.oracle.OracleDelegate
+#       org.quartz.jobStore.useProperties: false
+#       org.quartz.jobStore.dataSource: managedDS
+#       org.quartz.jobStore.nonManagedTXDataSource: notManagedDS
+#       org.quartz.jobStore.tablePrefix: QRTZ_
+#       org.quartz.jobStore.isClustered: true
+#       org.quartz.jobStore.clusterCheckinInterval: 20000
+#       org.quartz.dataSource.managedDS.jndiURL: jboss/datasources/quartzManaged
+#       org.quartz.dataSource.notManagedDS.jndiURL: jboss/datasources/quartzUnmanaged
+jboss_eap_properties_files:
+  - "{{ jboss_eap_jbpm_user_info_properties}}"
+#
+# Example:
+#
+# jboss_eap_system_properties:
+#   org.drools.server.filter.classes: "True"
+#   org.kie.server.user: jboss_user
+#   org.kie.server.pwd: "{{ passwords.org_kie_server_pwd }}"
+#   org.kie.server.id: default-kieserver
+#   org.drools.server.filter.classes: true
+#   org.kie.server.location: http://{{ inventory_hostname }}:8080/kie-server/services/rest/server
+#   org.kie.server.controller: http://example.com:8080/business-central/rest/controller
+#   org.kie.server.controller.user: jboss_user
+#   org.kie.server.controller.pwd: "{{ passwords.org_kie_controller_pwd }}"
+#   org.kie.server.bypass.auth.user: "True"
+#   jbpm.usergroup.callback.properties: file://{{ jboss_eap_config_dir }}/jbpm-usergroup-callback.properties
+#   jbpm.user.info.properties: file://{{ jboss_eap_config_dir }}/jbpm.user.info.properties
+#   org.jbpm.ht.callback: custom
+#   org.jbpm.ht.custom.callback: com.example.jbpm.task.CustomTestUserGroupCallbackImpl
+#   org.jbpm.ht.userinfo: ldap
+#   org.quartz.properties: "{{ jboss_eap_config_dir }}/quartz-definition.properties"
+#
+jboss_eap_system_properties: {}
+
+###########################
+# BUSINESS CENTRAL INSTALLATION TYPE
+# ----------------------------------
+# There are 4 general installation types for a single Business Central installation.
+#
+# UNIFIED EXECUTION SERVER:
+# - Business Central is installed
+# - KIE Server is installed
+# - Both share a single database
+# - Certain system properties are set
+#
+# BUSINESS CENTRAL STANDALONE:
+# - Business Central is installed
+# - BC has sole control of a database of its own
+#
+# BUSINESS CENTRAL AS MANAGER:
+# - Business Central is installed
+# - BC needs no database
+# - BC is a deployment controller for remote managed KIE Server instances
+# - Certain system properties are set
+#
+# NONE (UNMANAGED KIE SERVER):
+# - Business Central is not installed
+# - Only Kie Server will have a database
+#
+# Uncomment the option below as appropriate for your desired environment.
+#
+###########################
+#jboss_bxms_bc_installation_type: "unified"
+#jboss_bxms_bc_installation_type: "standalone"
+#jboss_bxms_bc_installation_type: "manager"
+jboss_bxms_bc_installation_type: "none"
+
+###########################
+# KIE SERVER INSTALLATION TYPE
+# ----------------------------------
+# There are 4 general installation types for a single KIE Server installation.
+#
+# UNIFIED EXECUTION SERVER:
+# - Business Central is installed
+# - KIE Server is installed
+# - Both share a single database
+# - Certain system properties are set
+#
+# UNMANAGED KIE SERVER:
+# - KIE Server is installed
+# - KIE Server has sole control of a database of its own
+#
+# MANAGED KIE SERVER:
+# - KIE Server is installed
+# - KIE Server may share a database with other managed KIE Server instances
+# - KIE Server may _not_ share a database with any BC instances
+# - KIE Server must be pointed at a BC instance which will manage it
+# - Certain system properties are set
+#
+# NONE (BUSINESS CENTRAL AS STANDALONE OR MANAGER):
+# - KIE Server is not installed
+# - Only Business Central will have a database
+#
+# Uncomment the option below as appropriate for your desired environment.
+#
+###########################
+#jboss_bxms_kie_installation_type: "unified"
+jboss_bxms_kie_installation_type: "unmanaged"
+#jboss_bxms_kie_installation_type: "managed"
+#jboss_bxms_kie_installation_type: "none"
+
+###########################
+# CUSTOM LIBRARIES
+# ---------------------------------
+# It is possible to include external JAR libraries for use in Business Central or KIE Server processes.
+#
+# jboss_bxms_business_central_custom_libs = If provided, this JAR(s) will be deployed into a discoverable location within Business Central
+# jboss_bxms_kie_server_custom_libs = If provided, this JAR(s) will be deployed into a discoverable location within KIE Server
+# 
+###########################
+#
+# Example:
+# jboss_bxms_kie_server_custom_libs:
+#   - name: custom-user-group-callback-1.0.0.jar
+#     url: http://example.com/repository/releases/custom-user-group-callback-1.0.0.jar
+#
+jboss_bxms_business_central_custom_libs: []
+jboss_bxms_kie_server_custom_libs: []

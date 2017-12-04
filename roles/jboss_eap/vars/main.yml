@@ -1,0 +1,6 @@
+---
+# Markers to indicate whether the playbook has processed to the point where
+# http and https have been configured. These are used to determine whether
+# a restart should check for availability of these services.
+jboss_eap_http_configured: false
+jboss_eap_https_configured: false

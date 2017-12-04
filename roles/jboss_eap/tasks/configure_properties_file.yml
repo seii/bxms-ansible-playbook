@@ -1,0 +1,20 @@
+---
+
+- name: Create properties file {{ properties_file.path }}
+  copy:
+    dest: >-
+      {% if properties_file.path[0] != '/' %}{{ jboss_eap_config_dir }}/{% endif %}{{ properties_file.path }}
+    content: "# This properties file is managed by ansible"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    mode: u=rw,g=r,o=
+    force: no
+
+- name: Set properties in {{ properties_file.path }}
+  lineinfile:
+    path: >-
+      {% if properties_file.path[0] != '/' %}{{ jboss_eap_config_dir }}/{% endif %}{{ properties_file.path }}
+    regexp: ^{{ item.key | regex_escape }}=.*
+    line: "{{ item.key }}={{ item.value | regex_replace('=','\\=') }}"
+  with_dict: "{{ properties_file.properties }}"
+  notify: "{{ restart_jboss_handler }}"

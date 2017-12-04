@@ -1,0 +1,144 @@
+---
+#################################
+## set up https for web server ##
+#################################
+
+- name: Get HTTPS security realm
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/security-realm=HTTPSRealm/:read-resource
+  check_mode: no
+  changed_when: false
+  failed_when: false
+  register: get_https_realm
+
+- name: Create HTTPS security realm
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/security-realm=HTTPSRealm/:add
+  when: get_https_realm.rc != 0
+  notify: "{{ restart_jboss_handler }}"
+  
+- name: Create HTTPS server identity
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  args:
+    chdir: "{{ jboss_eap_bin_dir }}"
+  vars:
+    cmd: >-
+      /core-service=management/security-realm=HTTPSRealm/server-identity=ssl:add(keystore-path={{ jboss_eap_https.keystore.file }},keystore-relative-to=jboss.server.config.dir,keystore-password={{ jboss_eap_https.keystore.storepass }},alias={{ jboss_eap_https.keystore.alias }})
+    https_realm: "{{ get_https_realm.stdout | parse_jbosscli_output }}"
+  when: >-
+    get_https_realm.rc != 0 or
+    https_realm.result["server-identity"] == None
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Get https socket binding
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  args:
+    chdir: "{{ jboss_eap_bin_dir }}"
+  vars:
+    cmd: >-
+      /socket-binding-group=standard-sockets/socket-binding=https:read-resource
+  check_mode: no
+  changed_when: false
+  register: get_https_socket_binding
+  until: get_https_socket_binding.rc == 0
+  retries: 5
+
+- name: Set https port in socket binding
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    jboss_port: "${jboss.https.port:{{ jboss_eap_bind_port_https }}}"
+    cmd: '/socket-binding-group=standard-sockets/socket-binding=https:write-attribute(name=port,value="{{ jboss_port }}")'
+    socket_binding: "{{ get_https_socket_binding.stdout | parse_jbosscli_output }}"
+  when: >-
+    socket_binding.result.port != jboss_port
+  notify: "{{ restart_jboss_handler }}"
+
+# If http is disabled, https listener should be default
+- name: Set fact for undertow https-listener name
+  set_fact:
+    jboss_eap_undertow_https_listener_name: "{{ 'default' if jboss_eap_http_disable else 'https' }}"
+
+- name: Get undertow https listener
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=undertow/server=default-server/https-listener=https:read-resource
+  check_mode: no
+  changed_when: false
+  failed_when: false
+  register: get_https_listener
+
+- name: Get undertow default https listener
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=undertow/server=default-server/https-listener=default:read-resource
+  check_mode: no
+  changed_when: false
+  failed_when: false
+  register: get_https_default_listener
+
+- name: Remove undertow https-listener
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=undertow/server=default-server/https-listener=https:remove
+  when: >-
+    jboss_eap_undertow_https_listener_name == 'default' and
+    get_https_listener.rc == 0
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Remove undertow default https-listener
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=undertow/server=default-server/https-listener=default:remove
+  when: >-
+    jboss_eap_undertow_https_listener_name == 'https' and
+    get_https_default_listener.rc == 0
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Restart JBoss
+  meta: flush_handlers
+
+- name: Add undertow https listener
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=undertow/server=default-server/https-listener={{ jboss_eap_undertow_https_listener_name }}:add(secure=true,enabled-protocols="TLSv1.1,TLSv1.2",socket-binding=https,security-realm=HTTPSRealm)
+  when: >-
+    ( jboss_eap_undertow_https_listener_name == 'https' and
+      get_https_listener.rc != 0
+    ) or (
+      jboss_eap_undertow_https_listener_name == 'default' and
+      get_https_default_listener.rc != 0
+    )
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Mark that HTTPS is now configured
+  set_fact:
+    jboss_eap_https_configured: true

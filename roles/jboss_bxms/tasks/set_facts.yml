@@ -1,0 +1,42 @@
+---
+
+- name: Set BPM Suite Artifact Facts
+  set_fact:
+    jboss_bxms_business_central_location: "{{ jboss_eap_deployment_dir }}/business-central.war"
+    jboss_bxms_dashbuilder_location: "{{ jboss_eap_deployment_dir }}/dashbuilder.war"
+    jboss_bxms_kie_server_location: "{{ jboss_eap_deployment_dir }}/kie-server.war"
+
+- name: Set BxMS Exists Fact Default to False
+  set_fact:
+    jboss_bxms_exists: false
+
+- name: Check For Existence of Business Central
+  become: true
+  stat:
+    path: "{{ jboss_bxms_business_central_location }}"
+  register: jboss_bxms_business_central_exists
+  tags:
+    - jboss_bxms
+
+- name: Check For Existence of KIE Server
+  become: true
+  stat:
+    path: "{{ jboss_bxms_kie_server_location }}"
+  register: jboss_bxms_kie_server_exists
+  tags:
+    - jboss_bxms
+
+- name: Check For Existence of Dashbuilder
+  become: true
+  stat:
+    path: "{{ jboss_bxms_dashbuilder_location }}"
+  register: jboss_bxms_dashbuilder_exists
+  tags:
+    - jboss_bxms
+
+- name: Set BxMS Exists Fact to True (if applicable)
+  set_fact:
+    jboss_bxms_exists: true
+  when: jboss_bxms_business_central_exists.stat.exists == True or
+        jboss_bxms_kie_server_exists.stat.exists == True or
+        jboss_bxms_dashbuilder_exists.stat.exists == True

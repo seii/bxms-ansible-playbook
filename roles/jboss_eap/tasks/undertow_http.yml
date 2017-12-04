@@ -1,0 +1,83 @@
+---
+
+- name: Get undertow default-server http-listener
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=undertow/server=default-server/http-listener=default:read-resource
+  check_mode: no
+  changed_when: false
+  register: get_default_server_http_listener
+  until: >-
+    get_default_server_http_listener.rc == 0 or
+    "not found" in get_default_server_http_listener.stdout
+  retries: 5
+  failed_when: >-
+    get_default_server_http_listener.rc != 0 and
+    "not found" not in get_default_server_http_listener.stdout
+
+- name: Remove undertow default-server http-listener
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=undertow/server=default-server/http-listener=default:remove
+  when: >-
+    get_default_server_http_listener.rc == 0 and
+    jboss_eap_http_disable | bool
+  notify: "{{ restart_jboss_handler }}"
+
+# Enable http when not jboss_eap_http_disable
+- when: not jboss_eap_http_disable | bool
+  block:
+  - name: Get undertow default-server https-listener
+    become: true
+    become_user: "{{ jboss_eap_user }}"
+    command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+    vars:
+      cmd: >-
+        /subsystem=undertow/server=default-server/https-listener=default:read-resource
+    check_mode: no
+    changed_when: false
+    register: get_default_server_https_listener
+    until: >-
+      get_default_server_https_listener.rc == 0 or
+      "not found" in get_default_server_https_listener.stdout
+    retries: 5
+    failed_when: >-
+      get_default_server_https_listener.rc != 0 and
+      "not found" not in get_default_server_https_listener.stdout
+
+  # Just remove https-listener and let later tasks recreate it with name 'https'
+  # rather than 'default'.
+  - name: Remove undertow default-server default https-listener
+    become: true
+    become_user: "{{ jboss_eap_user }}"
+    command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+    vars:
+      cmd: >-
+        /subsystem=undertow/server=default-server/https-listener=default:remove
+    when: >-
+      get_default_server_https_listener.rc == 0
+    notify: "{{ restart_jboss_handler }}"
+  
+  - name: Restart JBoss
+    meta: flush_handlers
+
+  - name: Add undertow default-server default http-listener
+    become: true
+    become_user: "{{ jboss_eap_user }}"
+    command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+    vars:
+      cmd: >-
+        /subsystem=undertow/server=default-server/http-listener=default:add(socket-binding=http,redirect-socket=https)
+    when: >-
+      get_default_server_http_listener.rc != 0
+    notify: "{{ restart_jboss_handler }}"
+
+  - name: Mark that HTTPS is configured
+    set_fact:
+      jboss_eap_http_configured: true

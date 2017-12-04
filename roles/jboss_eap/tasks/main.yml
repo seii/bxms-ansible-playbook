@@ -1,0 +1,26 @@
+---
+
+- include: set_facts.yml
+
+- include: check_variables.yml
+
+- name: Check Existence of Libraries
+  become: true
+  stat:
+    path: "{{ jboss_eap_install_path }}/version.txt"
+  register: jboss_eap_exists
+  tags:
+    - jboss_eap
+
+# Install eap and dependencies
+- name: Begin EAP installation
+  include: install.yml
+  when:
+    - jboss_eap_exists.stat.exists == false
+
+# Configure JBoss EAP
+# May be skipped by setting jboss_eap_configure to false
+- name: Begin EAP configuration
+  include: configure_eap.yml
+  static: false
+  when: jboss_eap_configure | bool

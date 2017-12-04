@@ -1,0 +1,8 @@
+---
+- name: Install Pre-Requisite Packages
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+  become: true
+  with_items:
+  - "{{ jboss_eap_prereq_pkg_names }}"
+  tags:
+  - eap

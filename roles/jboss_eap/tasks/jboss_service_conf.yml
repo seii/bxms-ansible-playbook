@@ -1,0 +1,12 @@
+---
+
+- name: Copy JBoss EAP Service Conf File
+  template:
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    src: jboss-as.conf.j2
+    dest: "{{ jboss_service_conf_file }}"
+    backup: yes
+    mode: "755"
+  tags:
+    - jboss_eap

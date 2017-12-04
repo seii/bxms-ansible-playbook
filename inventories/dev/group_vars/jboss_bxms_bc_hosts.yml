@@ -1,0 +1,57 @@
+---
+
+###########################
+# INTRODUCTION
+# ------------
+# This file contains Ansible variables for setting up the JBoss BxMS component called "Business Central".
+# Summaries of variable functions will be listed for each section.
+# Any values not set in this or other inventory files will be pulled from DEFAULT VALUES.
+# Any values needing an in-depth explanation will explain in DEFAULT VALUES.
+#
+# DEFAULT VALUES for iptables options are found in "<top level>/roles/iptables_mgmt/defaults/main.yml"
+# DEFAULT VALUES for EAP options are found in "<top level>/roles/jboss_eap/defaults/main.yml"
+# DEFAULT VALUES for BxMS options are found in "<top level>/roles/jboss_bxms/defaults/main.yml"
+###########################
+
+###########################
+# BUSINESS CENTRAL INSTALLATION TYPE
+# ----------------------------------
+# There are 4 general installation types for a single Business Central installation.
+#
+# UNIFIED EXECUTION SERVER:
+# - Business Central is installed
+# - KIE Server is installed
+# - Both share a single database
+# - Certain system properties are set
+#
+# BUSINESS CENTRAL STANDALONE:
+# - Business Central is installed
+# - BC has sole control of a database of its own
+#
+# BUSINESS CENTRAL AS MANAGER:
+# - Business Central is installed
+# - BC needs no database
+# - BC is a deployment controller for remote managed KIE Server instances
+# - Certain system properties are set
+#
+# NONE (UNMANAGED KIE SERVER):
+# - Business Central is not installed
+# - Only Kie Server will have a database
+#
+# Uncomment the option below as appropriate for your desired environment.
+#
+###########################
+#jboss_bxms_bc_installation_type: "unified"
+jboss_bxms_bc_installation_type: "standalone"
+#jboss_bxms_bc_installation_type: "manager"
+#jboss_bxms_bc_installation_type: "none"
+
+###########################
+# CUSTOM LIBRARIES
+# ---------------------------------
+# It is possible to include external JAR libraries for use in Business Central processes.
+#
+# jboss_bxms_business_central_custom_libs = If provided, this JAR(s) will be deployed into a discoverable location within Business Central
+# 
+###########################
+jboss_bxms_business_central_custom_libs: []

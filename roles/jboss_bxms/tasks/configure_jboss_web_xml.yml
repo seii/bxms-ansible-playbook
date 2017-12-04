@@ -1,0 +1,18 @@
+---
+- name: Set jndi-name in {{ jboss_web_xml }}
+  lineinfile:
+    path: "{{ jboss_web_xml }}"
+    line: '\1<jndi-name>{{ jndi_name }}</jndi-name>'
+    regexp: "^( *)<jndi-name>.*</jndi-name>"
+    backrefs: yes
+  when: jndi_name != ''
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Set security-domain in {{ jboss_web_xml }}
+  lineinfile:
+    path: "{{ jboss_web_xml }}"
+    line: '  <security-domain>{{ security_domain }}</security-domain>'
+    regexp: '^ *<security-domain>.*</security-domain>'
+    insertbefore: '</jboss-web>'
+  when: security_domain != ''
+  notify: "{{ restart_jboss_handler }}"

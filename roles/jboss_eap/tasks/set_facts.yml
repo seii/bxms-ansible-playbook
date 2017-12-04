@@ -1,0 +1,17 @@
+---
+
+- name: Set JBoss EAP Directories Facts
+  set_fact:
+    jboss_service_conf_dir: "/etc/{{ (jboss_eap_base_version | version_compare('8.0','<')) | ternary(jboss_eap_service_name,'jboss-eap') }}"
+    jboss_service_log_dir: "{{ jboss_eap_logging_path }}/{{ jboss_eap_service_name }}"
+    jboss_service_data_dir: "/var/run/{{ jboss_eap_service_name }}"
+
+- name: Set JBoss EAP Service Files Facts
+  set_fact:
+    jboss_service_conf_file: "{{ jboss_service_conf_dir }}/jboss-eap.conf"
+    jboss_runtime_conf_file: "{{ jboss_eap_bin_dir }}/standalone.conf"
+    jboss_service_file: "jboss-eap-rhel.sh"
+
+- name: Set fact for running jboss_cli.sh
+  set_fact:
+    jboss_cli: "{{ jboss_eap_bin_dir }}/jboss-cli.sh -c --timeout=30000"

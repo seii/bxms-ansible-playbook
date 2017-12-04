@@ -1,0 +1,76 @@
+---
+
+- name: Stop EAP Service
+  service:
+    name: "{{ jboss_eap_service_name }}"
+    state: stopped
+
+- name: Download JBoss BxMS
+  get_url:
+    url: "{{ jboss_bxms_artifact_url }}"
+    dest: "{{ jboss_eap_install_temp_dir }}"
+    checksum: "{{ jboss_bxms_artifact_checksum }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+  when: jboss_bxms_artifact_source == "download"
+
+- name: Copy BPMS archive
+  copy:
+    src: "{{ jboss_bxms_artifact_name }}.zip"
+    dest: "{{ jboss_eap_install_temp_dir }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    mode: 0644
+  when: jboss_bxms_artifact_source == "copy"
+
+# For EAP, this should overlay the BPM download over EAP, intentionally overwriting some files in the process
+- name: Extract BPM Suite
+  become: true
+  unarchive:
+    src: "{{ jboss_eap_install_temp_dir }}/{{jboss_bxms_artifact_name }}.zip"
+    dest: "{{ jboss_eap_install_base_dir }}"
+    copy: no
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+
+- name: Begin applying BxMS patch
+  include: patch.yml
+  when: jboss_bxms_apply_patch
+
+- name: Remove Business Central WAR
+  file:
+    state: absent
+    path: "{{ jboss_bxms_business_central_location }}"
+  when: jboss_bxms_bc_installation_type == "none"
+
+- name: Remove Business Central Deployment Marker
+  file:
+    state: absent
+    path: "{{ jboss_bxms_business_central_location + '.dodeploy' }}"
+  when: jboss_bxms_bc_installation_type == "none"
+
+- name: Remove Dashbuilder WAR
+  file:
+    state: absent
+    path: "{{ jboss_bxms_dashbuilder_location }}"
+  when: jboss_bxms_bc_installation_type == "none"
+
+- name: Remove Dashbuilder Deployment Marker
+  file:
+    state: absent
+    path: "{{ jboss_bxms_dashbuilder_location + '.dodeploy' }}"
+  when: jboss_bxms_bc_installation_type == "none"
+
+- name: Remove KIE Server WAR
+  file:
+    state: absent
+    path: "{{ jboss_bxms_kie_server_location }}"
+  when:
+    - jboss_bxms_kie_installation_type == "none"
+
+- name: Remove KIE Server Deployment Marker
+  file:
+    state: absent
+    path: "{{ jboss_bxms_kie_server_location + '.dodeploy' }}"
+  when:
+    - jboss_bxms_kie_installation_type == "none"

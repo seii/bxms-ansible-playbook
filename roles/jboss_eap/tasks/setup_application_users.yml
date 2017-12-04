@@ -1,0 +1,16 @@
+---
+
+- name: ApplicationRealm users
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: >-
+    {{ jboss_eap_bin_dir }}/add-user.sh
+    -up {{ jboss_eap_config_dir }}/application-users.properties
+    -r 'ApplicationRealm'
+    -g {{ item.groups }}
+    -a {{ item.user }}
+    {{ item.password }}
+  with_items: "{{ jboss_eap_application_users }}"
+  register: jboss_add_user
+  changed_when: >-
+    'Added user' in jboss_add_user.stdout

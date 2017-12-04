@@ -1,0 +1,84 @@
+---
+
+# Currently we only support patching from base (e.g. 6.x.0), not incremental minor release patches as the role is for initial install
+- name: Determine current JBoss EAP patch info
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_eap_bin_dir }}/jboss-cli.sh {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      patch info
+  register: patch_info
+  check_mode: no
+  changed_when: false
+  tags:
+    - jboss_eap
+
+- name: Set fact jboss_eap_cumulative_patch_id
+  set_fact:
+    jboss_eap_cumulative_patch_id: "{{ patch_info.stdout | regex_replace('(?s).*Cumulative patch ID: *(\\S+).*', '\\1') }}"
+
+- when: jboss_eap_apply_patch == true
+  block:
+  - name: Download JBoss EAP Patch by URL (HTTP/HTTPS/FTP)
+    get_url:
+      url: "{{ jboss_eap_patch_artifact_url }}"
+      dest: /tmp/{{ jboss_eap_patch_name }}.zip
+      checksum: "{{ jboss_eap_patch_artifact_checksum | default(omit) }}"
+      owner: "{{ jboss_eap_user }}"
+      group: "{{ jboss_eap_group }}"
+    check_mode: no
+    tags:
+      - jboss_eap
+    when: jboss_eap_patch_source == "download"
+
+  - name: Copy JBoss EAP Patch
+    copy:
+      src: "{{ jboss_eap_patch_name }}.zip"
+      dest: "{{ jboss_eap_install_temp_dir }}/{{ jboss_eap_patch_name }}.zip"
+      owner: "{{ jboss_eap_user }}"
+      group: "{{ jboss_eap_group }}"
+      mode: 0644
+    check_mode: no
+    tags:
+      - jboss_eap
+    when: jboss_eap_patch_source == "copy"
+
+  - name: Determine available patch ID
+    become: true
+    become_user: "{{ jboss_eap_user }}"
+    command: "{{ jboss_eap_bin_dir }}/jboss-cli.sh {{ '--command=' ~ cmd | quote }}"
+    vars:
+      cmd: >-
+        patch inspect /tmp/{{ jboss_eap_patch_name }}.zip
+    register: patch_inspect
+    changed_when: false
+    check_mode: no
+    tags:
+      - jboss_eap
+
+  - name: Set fact jboss_eap_patch_id
+    set_fact:
+      jboss_eap_patch_id: "{{ patch_inspect.stdout | regex_replace('(?s).*Patch ID: *(\\S+).*', '\\1') }}"
+    tags:
+      - jboss_eap
+
+  # Patches can be applied while EAP is running
+  - name: Apply JBoss EAP Patch
+    become: true
+    become_user: "{{ jboss_eap_user }}"
+    command: "{{ jboss_eap_bin_dir }}/jboss-cli.sh {{ '--command=' ~ cmd | quote }}"
+    vars:
+      cmd: >-
+        patch apply /tmp/{{ jboss_eap_patch_name }}.zip --verbose --override-all
+    when: >-
+      jboss_eap_cumulative_patch_id != jboss_eap_patch_id
+    tags:
+      - jboss_eap
+
+  - set_fact:
+      jboss_eap_current_patch_id: "{{ jboss_eap_patch_id }}"
+    when: >-
+      jboss_eap_cumulative_patch_id != jboss_eap_patch_id
+    tags:
+      - jboss_eap

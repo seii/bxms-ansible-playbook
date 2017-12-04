@@ -1,0 +1,5 @@
+---
+- include: system_property.yml
+  with_dict: "{{ jboss_eap_system_properties }}"
+  loop_control:
+    loop_var: system_property

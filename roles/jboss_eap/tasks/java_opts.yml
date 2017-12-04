@@ -1,0 +1,61 @@
+---
+### EAP role JAVA_OPTS default settings
+
+- name: Set initial JAVA_OPTS
+  lineinfile:
+    dest: "{{ jboss_runtime_conf_file }}"
+    line: '\1JAVA_OPTS="{{ jboss_eap_init_java_opts }}"'
+    regexp: '( +)JAVA_OPTS="-.*'
+    backrefs: yes
+  when: jboss_eap_init_java_opts is defined
+  notify: "{{ restart_jboss_handler }}"
+  tags:
+    - jboss_eap
+
+# - FIXME -
+# These settings should likely be in the server.xml rather than on the command line.
+- name: Set Web Bind Address in JAVA_OPTS
+  lineinfile:
+    dest: "{{ jboss_runtime_conf_file }}"
+    line: 'JAVA_OPTS="$JAVA_OPTS -Djboss.bind.address={{ jboss_eap_bind_web_address }}"'
+  when: jboss_eap_bind_web_address is defined
+  notify: "{{ restart_jboss_handler }}"
+  tags:
+    - jboss_eap
+
+- name: Set Management Bind Address in JAVA_OPTS
+  lineinfile:
+    dest: "{{ jboss_runtime_conf_file }}"
+    line: 'JAVA_OPTS="$JAVA_OPTS -Djboss.bind.address.management={{ jboss_eap_bind_management_address }}"'
+  when: jboss_eap_bind_management_address is defined
+  notify: "{{ restart_jboss_handler }}"
+  tags:
+    - jboss_eap
+
+- name: Set User Time Zone for Logs in JAVA_OPTS
+  lineinfile:
+    dest: "{{ jboss_runtime_conf_file }}"
+    line: 'JAVA_OPTS="$JAVA_OPTS -Duser.timezone={{jboss_eap_logging_timezone}}"'
+  notify: "{{ restart_jboss_handler }}"
+  tags:
+    - jboss_eap
+
+# See https://access.redhat.com/solutions/34626
+- name: Set Improved Randomness Location in JAVA_OPTS
+  lineinfile:
+    dest: "{{ jboss_runtime_conf_file }}"
+    line: JAVA_OPTS="$JAVA_OPTS -Djava.security.egd=file:/dev/./urandom"
+  notify: "{{ restart_jboss_handler }}"
+  tags:
+    - jboss_eap
+
+- name: Append additional options to JAVA_OPTS
+  lineinfile:
+    dest: "{{ jboss_runtime_conf_file }}"
+    line: 'JAVA_OPTS="$JAVA_OPTS -D{{ item.key }}={{ item.value | default("") | quote }}"'
+    regexp: '^JAVA_OPTS="\$JAVA_OPTS -D{{ item.key | regex_escape }}=.*"'
+    state: '{% if item.value == None %}absent{% else %}present{% endif %}'
+  with_dict: "{{ jboss_eap_extra_java_opts }}"
+  notify: "{{ restart_jboss_handler }}"
+  tags:
+    - jboss_eap

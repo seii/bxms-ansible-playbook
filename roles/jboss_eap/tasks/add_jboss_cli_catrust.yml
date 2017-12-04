@@ -1,0 +1,49 @@
+- name: Copy cacert for catrust {{ catrust.alias }}
+  copy:
+    src: "{{ catrust.cacert }}"
+    dest: "{{ jboss_eap_config_dir }}/{{ catrust.cacert | basename }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    remote_src: "{{ catrust.remote_src | default(False) | bool }}"
+  register: copy_cacert
+
+- when: copy_cacert.changed
+  block:
+  - name : Delete old entry for {{ catrust.alias }} from JBoss CLI truststore
+    become: true
+    become_user: "{{ jboss_eap_user }}"
+    shell: >-
+      keytool -delete
+      -alias {{ catrust.alias | quote }}
+      -keystore ~/.jboss-cli.truststore
+      -storepass cli_truststore
+      -noprompt
+    failed_when: false
+    
+  - name: Import {{ keystore.jboss_cli_import }} certificate into JBoss CLI truststore
+    become: true
+    become_user: "{{ jboss_eap_user }}"
+    shell: >-
+      keytool -importcert
+      -file {{ catrust.cacert | basename | quote }}
+      -alias {{ catrust.alias | quote }}
+      -keystore ~/.jboss-cli.truststore
+      -storepass cli_truststore
+      -noprompt
+    args:
+      chdir: "{{ jboss_eap_config_dir }}"
+
+  - name: Import {{ keystore.jboss_cli_import }} certificate into JBoss CLI truststore for root
+    become: true
+    become_user: root
+    shell: >-
+      keytool -importcert
+      -file {{ catrust.cacert | basename | quote }}
+      -alias {{ catrust.alias | quote }}
+      -keystore ~/.jboss-cli.truststore
+      -storepass cli_truststore
+      -noprompt
+    args:
+      chdir: "{{ jboss_eap_config_dir }}"
+    # Ignore failures - not essential
+    failed_when: false

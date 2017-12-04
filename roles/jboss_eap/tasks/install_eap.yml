@@ -1,0 +1,85 @@
+---
+
+- name: Download JBoss EAP by URL (HTTP/HTTPS/FTP)
+  get_url:
+    url: "{{ jboss_eap_artifact_url }}"
+    dest: "{{ jboss_eap_install_temp_dir }}"
+    checksum: "{{ jboss_eap_artifact_checksum | default(omit) }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+  tags:
+    - jboss_eap
+  when:
+    - jboss_eap_exists.stat.exists == false
+    - jboss_eap_artifact_source == "download"
+
+- name: Copy EAP archive
+  copy:
+    src: "{{ jboss_eap_artifact_name }}.zip"
+    dest: "{{ jboss_eap_install_temp_dir }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    mode: 0644
+  when:
+    - jboss_eap_exists.stat.exists == false
+    - jboss_eap_artifact_source == "copy"
+
+- name: Extract JBoss EAP Libraries
+  become: true
+  unarchive:
+    src: /tmp/{{ jboss_eap_artifact_name }}.zip
+    dest: "{{ jboss_eap_install_base_dir }}"
+    creates: "jboss-eap-{{jboss_eap_base_version}}.0"
+    copy: no
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+  tags:
+    - jboss_eap
+  #no_log: true
+  when: jboss_eap_exists.stat.exists == false
+
+## Copy {{jboss_eap_service_name}}.sh file to /etc/init.d
+- name: Copy JBoss EAP Service File (non-systemd)
+  become: true
+  copy:
+    src: "{{jboss_eap_bin_dir}}/init.d/{{ jboss_service_file }}"
+    dest: "/etc/init.d/{{ jboss_service_file }}"
+    remote_src: True
+    owner: "root"
+    group: "root"
+    mode: "755"
+#  when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "6"
+  tags:
+    - jboss_eap
+
+## Create systemd unit file for EAP service
+- name: Copy JBoss EAP Unit File (systemd)
+  template:
+    owner: "root"
+    group: "root"
+    src: jboss-eap-service.j2
+    dest: "/etc/systemd/system/{{ jboss_eap_service_name }}.service"
+    backup: yes
+    mode: "644"
+  when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "7"
+  tags:
+    - jboss_eap
+
+- include: jboss_service_conf.yml
+
+- name: Enable JBoss Service (non-systemd)
+  become: true
+  service:
+    name: "{{ jboss_eap_service_name }}"
+    enabled: yes
+  when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "6"
+  tags:
+    - jboss_eap
+
+- name: Enable JBoss Service (systemd)
+  become: true
+  systemd:
+    name: "{{ jboss_eap_service_name }}"
+    enabled: yes
+    daemon_reload: yes
+  when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "7"

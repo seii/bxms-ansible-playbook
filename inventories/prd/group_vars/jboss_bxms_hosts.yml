@@ -1,0 +1,145 @@
+---
+
+###########################
+# INTRODUCTION
+# ------------
+# This file contains Ansible variables for setting up JBoss BxMS software.
+# Summaries of variable functions will be listed for each section.
+# Any values not set in this or other inventory files will be pulled from DEFAULT VALUES.
+# Any values needing an in-depth explanation will explain in DEFAULT VALUES.
+#
+# DEFAULT VALUES for iptables options are found in "<top level>/roles/iptables_mgmt/defaults/main.yml"
+# DEFAULT VALUES for EAP options are found in "<top level>/roles/jboss_eap/defaults/main.yml"
+# DEFAULT VALUES for BxMS options are found in "<top level>/roles/jboss_bxms/defaults/main.yml"
+###########################
+
+###########################
+# BPMS INSTALLATION SOURCES
+# --------------------
+# This Ansible script supports two ways to obtain the BPMS source artifacts.
+#   Method 1 = Provide the artifacts in the "files" folder as ZIP archives
+#   Method 2 = Provide URLs where the artifacts can be downloaded from
+#
+# jboss_bxms_artifact_name = File name of the provided artifact without a file extension (Method 1)
+# jboss_bxms_artifact_source = "copy" (Method 1) or "download" (Method 2)
+# jboss_bxms_artifact_url = URL for downloading (Method 2)
+# jboss_bxms_artifact_checksum = MD5 checksum to verify that artifact is uncorrupted (Methods 1 & 2)
+#
+# DEFAULTS:
+# jboss_bxms_artifact_name: jboss-bpmsuite-6.4.0.GA-deployable-eap7.x
+# jboss_bxms_artifact_source: copy
+# jboss_bxms_artifact_url: http://fileserv.example.com/path/to/{{ jboss_bxms_artifact_name }}.zip
+# jboss_bxms_artifact_checksum: md5:<hash value>
+###########################
+jboss_bxms_artifact_name: jboss-bpmsuite-6.4.0.GA-deployable-eap7.x
+jboss_bxms_artifact_source: copy
+jboss_bxms_artifact_url: http://fileserv.example.com/path/to/{{ jboss_bxms_artifact_name }}.zip
+jboss_bxms_artifact_checksum: md5:a3d28eaf23495cb37e9ecd136dfb0c2d
+
+
+###########################
+# BPMS PATCH SOURCES
+# --------------------
+# This Ansible script provides two ways to obtain the BPMS patch artifacts.
+#   Method 1 = Provide the artifacts in the "files" folder as ZIP archives
+#   Method 2 = Provide URLs where the artifacts can be downloaded from
+#
+# jboss_bxms_apply_patch = Whether to apply a patch at all (true/false)
+# jboss_bxms_patch_name = File name of the provided artifact without a file extension (Method 1)
+# jboss_bxms_patch_source = "copy" (Method 1) or "download" (Method 2)
+# jboss_bxms_patch_url = URL for downloading (Method 2)
+# jboss_bxms_patch_checksum = MD5 checksum to verify that artifact is uncorrupted (Methods 1 & 2)
+#
+# DEFAULTS:
+# jboss_eap_apply_patch: true
+# jboss_bxms_patch_name: jboss-bpmsuite-6.4.6-patch
+# jboss_bxms_patch_source: copy
+# jboss_bxms_patch_url: http://fileserv.example.com/path/to/{{ jboss_bxms_patch_name }}.zip
+#jboss_eap_patch_artifact_checksum: md5:<hash value>
+###########################
+jboss_bxms_apply_patch: true
+jboss_bxms_patch_name: jboss-bpmsuite-6.4.6-patch
+jboss_bxms_patch_source: copy
+jboss_bxms_patch_url: http://fileserv.example.com/path/to/{{ jboss_bxms_patch_name }}.zip
+jboss_bxms_patch_checksum: md5:2cbda304ddcd4c3c848da296d01425d6
+
+###########################
+# CUSTOM MAVEN REPOSITORIES
+# --------------------
+# Specify custom Maven repositories for BxMS to use for pushing and pulling artifacts.
+#
+# jboss_bxms_use_custom_maven_settings = Whether to use custom Maven repositories (true/false)
+# jboss_bxms_maven_repo_dir = If provided, this path will be used to store the local Maven repository
+# jboss_bxms_maven_repos = If provided, this repository(s) will be added as custom Maven repositories
+# 
+###########################
+jboss_bxms_use_custom_maven_settings: false
+jboss_bxms_maven_repo_dir: "{{ jboss_eap_install_base_dir }}"
+jboss_bxms_maven_repos:
+  - profile: "redhat-snapshots-repo"
+    id: "redhat-snapshots"
+    url: "http://example.com/repository/redhat-snapshots/"
+    release_enabled:  "false"
+    snapshot_enabled: "true"
+    username: redhat
+    password: "{{ passwords.maven }}"
+
+  - profile: "redhat-releases-repo"
+    id: "redhat-releases"
+    url: "http://example.com/repository/redhat-releases/"
+    release_enabled:  "true"
+    snapshot_enabled: "false"
+    username: redhat
+    password: "{{ passwords.maven }}"
+
+  - profile: example-snapshots-repo
+    id: snapshots
+    url: http://example.com/repositories/snapshots/
+    release_enabled:  "false"
+    snapshot_enabled: "true"
+    update_policy: always
+
+  - profile: example-releases-repo
+    id: releases
+    url: http://example.com/repositories/releases/
+    release_enabled:  "true"
+    snapshot_enabled: "false"
+
+###########################
+# SECURITY DOMAINS
+# ----------------
+# Specify security domains to be used for BxMS components.
+#
+# jboss_bxms_business_central_security_domain = If provided, this domain will be used for authenticating with Business Central
+# jboss_bxms_dashbuilder_security_domain = If provided, this domain will be used for authenticating with Dashbuilder
+# jboss_bxms_kie_server_security_domain = If provided, this domain will be used for authenticating with KIE Server
+# 
+###########################
+jboss_bxms_business_central_security_domain: ""
+jboss_bxms_dashbuilder_security_domain: ""
+jboss_bxms_kie_server_security_domain: ""
+
+###########################
+# DATASOURCES
+# ----------------
+# jboss_eap_datasources = If provided, this datasource will be created in EAP
+# jboss_bxms_business_central_jndi_name = If provided, this datasource will be used for persistence in Business Central
+# jboss_bxms_dashbuilder_jndi_name = If provided, this datasource will be used for persistence in Dashbuilder
+# jboss_bxms_kie_server_jndi_name = If provided, this datasource will be used for persistence in KIE Server
+# 
+###########################
+jboss_eap_datasources: []
+jboss_bxms_business_central_jndi_name: ""
+jboss_bxms_dashbuilder_jndi_name: ""
+jboss_bxms_kie_server_jndi_name: ""
+
+###########################
+# PROPERTIES
+# ----------------
+# jboss_eap_jbpm_user_info_properties = If provided, this property(s) will be used by some applications for user authentication
+# 
+###########################
+jboss_eap_jbpm_user_info_properties: {}
+jboss_eap_properties_files:
+  - "{{ jboss_eap_jbpm_user_info_properties}}"
+jboss_eap_system_properties: {}

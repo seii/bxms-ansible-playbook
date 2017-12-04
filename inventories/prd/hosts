@@ -1,0 +1,18 @@
+[jboss_eap_hosts:children]
+jboss_bxms_hosts
+
+[jboss_eap_hosts:vars]
+# EAP requires root access to install, so just become the root user
+ansible_become=true
+
+[jboss_bxms_hosts:children]
+jboss_bxms_bc_hosts
+jboss_bxms_kie_hosts
+
+[jboss_bxms_bc_hosts]
+# BxMS does not require root permission, so specify a user to install as
+127.0.0.1 ansible_user=<example user>
+
+[jboss_bxms_kie_hosts]
+# BxMS does not require root permission, so specify a user to install as
+127.0.0.1 ansible_user=<example user>

@@ -1,0 +1,22 @@
+---
+- name: Check for Business Central installation type
+  fail:
+    msg: "Please uncomment a type of Business Central installation"
+  when: jboss_bxms_bc_installation_type is not defined
+
+- name: Check for KIE Server installation type
+  fail:
+    msg: "Please uncomment a type of KIE Server installation"
+  when: jboss_bxms_kie_installation_type is not defined
+
+- name: Check for mixed unified/non-unified installation type
+  fail:
+    msg: "When installing as a Unified Execution Server, please choose 'unified' for both Business Central and KIE Server"
+  when:
+    - (jboss_bxms_bc_installation_type == "unified" or jboss_bxms_kie_installation_type == "unified")
+    - (jboss_bxms_bc_installation_type != "unified" or jboss_bxms_kie_installation_type != "unified")
+
+#- name: 
+#  fail:
+#    msg: ""
+#  when: 

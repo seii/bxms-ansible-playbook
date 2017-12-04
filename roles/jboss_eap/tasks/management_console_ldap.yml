@@ -1,0 +1,70 @@
+---
+
+- name: Read Management LDAP connection
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/ldap-connection=ManagementLDAP/:read-resource
+  check_mode: no
+  changed_when: false
+  register: read_management_ldap_connection
+  until: >-
+    read_management_ldap_connection.rc == 0 or
+    "not found" in read_management_ldap_connection.stdout
+  failed_when:
+    read_management_ldap_connection.rc != 0 and
+    "not found" not in read_management_ldap_connection.stdout
+  retries: 5
+
+- name: Add Management LDAP connection
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: '/core-service=management/ldap-connection=ManagementLDAP/:add(search-dn="{{ jboss_eap_management_ldap.connection.search_dn }}",search-credential="{{ jboss_eap_management_ldap.connection.search_credential }}",url="{{ jboss_eap_management_ldap.connection.url }}")'
+  when: read_management_ldap_connection.rc != 0
+  notify: "{{ restart_jboss_handler }}"
+
+# FIXME - Add update logic to fix the search-dn, search-credential, or url
+
+- name: Read ManagementRealm
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/security-realm=ManagementRealm:read-resource
+  check_mode: no
+  changed_when: false
+  register: read_management_realm
+  until: read_management_realm.rc == 0
+  retries: 5
+
+# FIXME - These properties should be re-added if ldap management is disabled
+- name: Remove ManagementRealm authentication properties
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/security-realm=ManagementRealm/authentication=properties:remove
+    management_realm: >-
+      {{ read_management_realm.stdout | parse_jbosscli_output }}
+  when: >-
+    "properties" in management_realm.result.authentication
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Add ManagementRealm ldap authentitation
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: '/core-service=management/security-realm=ManagementRealm/authentication=ldap:add(connection="ManagementLDAP",base-dn="{{ jboss_eap_management_ldap.authentication.base_dn }}",recursive=true,username-attribute="{{ jboss_eap_management_ldap.authentication.username_attribute }}")'
+    management_realm: >-
+      {{ read_management_realm.stdout | parse_jbosscli_output }}
+  when: >-
+    "ldap" not in management_realm.result.authentication
+
+# FIXME - There should be logic to update LDAP authentication settings here

@@ -1,0 +1,218 @@
+---
+
+###########################
+# INTRODUCTION
+# ------------
+# This file contains Ansible variables for setting up JBoss EAP.
+# Summaries of variable functions will be listed for each section.
+# Any values not set in this or other inventory files will be pulled from DEFAULT VALUES.
+# Any values needing an in-depth explanation will explain in DEFAULT VALUES.
+#
+# ***
+# WARNING: This playbook does not currently support HA configurations or "domain" modes of EAP
+# ***
+#
+# DEFAULT VALUES for iptables options are found in "<top level>/roles/iptables_mgmt/defaults/main.yml"
+# DEFAULT VALUES for EAP options are found in "<top level>/roles/jboss_eap/defaults/main.yml"
+# DEFAULT VALUES for BxMS options are found in "<top level>/roles/jboss_bxms/defaults/main.yml"
+###########################
+
+###########################
+# FIREWALL SETTINGS
+# -----------------
+# iptables_conf_dir = Location of iptables configuration folder
+# iptables_conf = Location of iptables configuration file
+#
+###########################
+iptables_conf_dir: /etc/sysconfig
+iptables_conf: "{{ iptables_conf_dir }}/iptables"
+
+###########################
+# EAP PREREQUISITES
+# -----------------
+# jboss_eap_prereq_pkg_names = Package names (as found in the OS' package manager) of Linux packages to install before EAP is installed
+# 
+###########################
+jboss_eap_prereq_pkg_names:
+  - java-1.8.0-openjdk-devel
+  - unzip
+  - initscripts
+
+###########################
+# EAP USERS, FILES, AND FOLDERS
+# -----------------------------
+# jboss_eap_user = User under which EAP services, files, and folders will be created
+# jboss_eap_group = Group under which EAP services, files, and folders will be created
+# jboss_eap_install_temp_dir = Temporary folder where artifacts will be stored during the installation process
+# jboss_eap_install_base_dir = Base directory where EAP will be installed
+# jboss_eap_logging_path = Folder where EAP log files will be written
+# jboss_eap_logging_timezone = Timezone to use for log time stamps
+# 
+###########################
+jboss_eap_user: jboss-as
+jboss_eap_group: jboss-as
+jboss_eap_install_temp_dir: /tmp
+jboss_eap_install_base_dir: /srv/jboss/{{ jboss_eap_user }}
+jboss_eap_logging_path: /var/log
+jboss_eap_logging_timezone: America/Chicago
+
+
+###########################
+# EAP VERSION NUMBER
+# -------------------
+# jboss_eap_base_version = Major version of EAP to be installed
+#                          NOTE: This must match the artifact's major version!
+###########################
+jboss_eap_base_version: 7
+
+
+###########################
+# EAP INSTALLATION SOURCES
+# --------------------
+# This Ansible script supports two ways to obtain the EAP source artifacts.
+#   Method 1 = Provide the artifacts in the "files" folder as ZIP archives
+#   Method 2 = Provide URLs where the artifacts can be downloaded from
+#
+# jboss_eap_artifact_name = File name of the provided artifact without a file extension (Method 1)
+# jboss_eap_artifact_source = "copy" (Method 1) or "download" (Method 2)
+# jboss_eap_artifact_url = URL for downloading (Method 2)
+# jboss_eap_artifact_checksum = MD5 checksum to verify that artifact is uncorrupted (Methods 1 & 2)
+# 
+###########################
+jboss_eap_artifact_name: jboss-eap-7.0.0
+jboss_eap_artifact_source: copy
+jboss_eap_artifact_url: http://example.com/repository/{{ jboss_eap_artifact_name }}.zip
+jboss_eap_artifact_checksum: md5:cd02482daa0398bf5500e1628d28179a
+
+###########################
+# EAP PATCH SOURCES
+# --------------------
+# This Ansible script supports two ways to obtain the EAP patch artifacts.
+#   Method 1 = Provide the artifacts in the "files" folder as ZIP archives
+#   Method 2 = Provide URLs where the artifacts can be downloaded from
+#
+# jboss_eap_apply_patch = Whether to apply a patch at all (true/false)
+# jboss_eap_patch_name = File name of the provided artifact without a file extension (Method 1)
+# jboss_eap_patch_source = "copy" (Method 1) or "download" (Method 2)
+# jboss_eap_patch_url = URL for downloading (Method 2)
+# jboss_eap_patch_checksum = MD5 checksum to verify that artifact is uncorrupted (Methods 1 & 2)
+# 
+###########################
+jboss_eap_apply_patch: true
+jboss_eap_patch_name: jboss-eap-7.0.8-patch
+jboss_eap_patch_source: copy
+jboss_eap_patch_artifact_url: http://example.com/repository/{{ jboss_eap_patch_name }}.zip
+jboss_eap_patch_artifact_checksum: md5:f47ab5260c9838a0789e5b3d59095bbb
+
+###########################
+# EAP RUNTIME OPTIONS
+# --------------------
+# jboss_eap_service_name = Name under which the EAP service will be installed to the OS
+# jboss_eap_config = Which EAP configuration file to use.
+# jboss_eap_mode = "standalone" or "domain"
+# jboss_eap_init_java_opts = Java options to use when running the EAP server (overrides JAVA_OPTS)
+# jboss_eap_extra_java_opts = Additional Java options to use when running the EAP server (appends to existing JAVA_OPTS)
+# jboss_eap_system_properties = If provided, this system property(s) are added to the EAP server using the "-D" command-line option
+# jboss_eap_properties_files = If provided, this file(s) will be created with the specified values in the EAP configuration directory
+# 
+###########################
+jboss_eap_service_name: jboss-eap
+jboss_eap_config: standalone.xml
+jboss_eap_mode: standalone
+jboss_eap_init_java_opts: -Xms2048m -Xmx2048m -XX:MetaspaceSize=1024m -XX:MaxMetaspaceSize=2048m -Djava.net.preferIPv4Stack=true
+jboss_eap_extra_java_opts: {}
+#
+# "env.type" is provided as an extra tag which is not required, but tends to make CI/CD operations easier
+#
+jboss_eap_system_properties:
+  env.type: dev
+jboss_eap_properties_files: []
+
+###########################
+# EAP IP AND PORT OPTIONS
+# --------------------
+# jboss_eap_bind_web_address = IP address which the base server will listen on, or "0.0.0.0" to listen on all IPv4 IPs
+# jboss_eap_bind_management_address = IP address which the management console for the server will listen on, or "0.0.0.0" to listen on all IPv4 IPs
+# jboss_eap_bind_port_http = The standard HTTP port to which the server will bind
+# jboss_eap_bind_port_https = The standard HTTPS port to which the server will bind
+# jboss_eap_bind_port_http_management = The standard HTTP port to which the management console will bind
+# jboss_eap_bind_port_https_management = The standard HTTPS port to which the management console will bind
+# 
+###########################
+jboss_eap_bind_web_address: 0.0.0.0
+jboss_eap_bind_management_address: 0.0.0.0
+jboss_eap_bind_port_http: 8080
+jboss_eap_bind_port_https: 8443
+jboss_eap_bind_port_http_management: 9990
+jboss_eap_bind_port_https_management: 9993
+
+###########################
+# EAP SECURITY STORE/CERTIFICATE OPTIONS
+# --------------------
+# jboss_eap_cli_catrust = If provided, this certificate(s) will be used to authenticate against the server for each JBoss CLI call
+# jboss_eap_keystores = If provided, this keystore(s) will be used by the server for certificate authentication
+# jboss_eap_management_ldap = If provided, this LDAP(s) will be used by the server for user authentication
+# jboss_eap_security_domains = If provided, this domain(s) will be used by the server for user authentication
+# 
+###########################
+jboss_eap_cli_catrust: []
+jboss_eap_keystores: []
+jboss_eap_management_ldap: {}
+jboss_eap_security_domains: []
+
+###########################
+# EAP HTTPS OPTIONS
+# -----------------
+# EAP communicates over the HTTP protocol by default. It can be set to use the HTTPS protocol
+#   in addition or exclusively, as well as disabling HTTP traffic and other options.
+#
+# jboss_eap_https = If provided, this keystore(s) will be used to validate HTTPS traffic to non-administrative EAP traffic
+# jboss_eap_management_https = If provided, this keystore(s) will be used to validate HTTPS traffic to the EAP administration console
+# jboss_eap_http_redirect = If provided, all HTTP traffic will be redirected to this URL
+# jboss_eap_http_disable = Whether to allow HTTP traffic at all (true/false)
+# 
+###########################
+jboss_eap_https: {}
+jboss_eap_management_https: {}
+jboss_eap_http_redirect: ""
+jboss_eap_http_disable: false
+
+###########################
+# EAP USER ACCESS OPTIONS
+# -----------------
+# Options to control how users access the administrative console or running applications in EAP.
+#
+# jboss_eap_management_users = If provided, this user(s) will have the specified access to the EAP server
+# jboss_eap_application_users = If provided, this user(s) will have the specified access to EAP applications (such as Business Central or KIE Server)
+# jboss_eap_http_management_disable = Whether to allow access to the EAP administrative console at all (true/false)
+# 
+###########################
+jboss_eap_management_users:
+  - user: jboss1
+    groups: PowerUser,BillingAdmin
+    password: jboss1
+jboss_eap_application_users:
+  - user: appuser1
+    groups: admin,developer,analyst,user,manager,reviewer,kie-server,task-group,rest-all,kiemgmt
+    password: appuser1
+jboss_eap_http_management_disable: false
+
+###########################
+# EAP DATA SOURCES
+# -----------------
+# jboss_eap_datasources = If provided, this datasource(s) will be added as EAP datasources
+# 
+###########################
+jboss_eap_datasources: []
+
+###########################
+# SKIP EAP CONFIGURATION
+# --------------------
+# jboss_eap_configure = Whether to skip configuring EAP options (true/false)
+#                            NOTE: This must be "false" when also installing BPMS, as some BPMS options may overwrite existing options.
+#                                  The BPMS installation will trigger EAP configuration automatically when it is safe to do so.
+#
+# DEFAULTS:
+# jboss_eap_configure: false
+###########################
+jboss_eap_configure: false

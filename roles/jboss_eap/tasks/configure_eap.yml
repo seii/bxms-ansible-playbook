@@ -1,0 +1,89 @@
+---
+- include: java_opts.yml
+
+- name: Restart JBoss EAP service if needed
+  meta: flush_handlers
+
+- name: Start JBoss EAP Service
+  service:
+    name: "{{ jboss_eap_service_name }}"
+    state: started
+    enabled: yes
+
+- name: Configure EAP system properties
+  include: system_properties.yml
+  when: jboss_eap_system_properties
+
+- name: Configure EAP properties file
+  include: configure_properties_file.yml
+  with_items: "{{ jboss_eap_properties_files | default([]) }}"
+  loop_control:
+    loop_var: properties_file
+
+- name: Set state of Undertow (HTTP) subsystem
+  include: undertow_http.yml
+
+- name: Configure default http redirect for Undertow
+  include: redirect_http.yml
+  when: jboss_eap_http_redirect
+
+- name: Add JBoss CLI catrust
+  include: add_jboss_cli_catrust.yml
+  with_items: "{{ jboss_eap_cli_catrust | default([]) }}"
+  loop_control:
+    loop_var: catrust
+
+- name: Create EAP keystore(s)
+  include: create_keystore.yml
+  with_items: "{{ jboss_eap_keystores | default([]) }}"
+  loop_control:
+    loop_var: keystore
+
+- name: Configure HTTPS Management
+  include: configure_management_https.yml
+  when: jboss_eap_management_https.keystore is defined
+
+- name: Setup HTTPS
+  include: setup_https.yml
+  when: jboss_eap_https.keystore is defined
+
+- name: Configure EAP management console
+  include: management_console.yml
+
+- name: Configure LDAP for EAP management console
+  include: management_console_ldap.yml
+  when:
+    - jboss_eap_management_ldap.connection is defined
+    - jboss_eap_management_ldap.authentication is defined
+
+#- include: copy_ldaps_cert.yml
+#  when: jboss_eap_ldaps_ca_certificate is defined
+
+#- include: setup_ldaps.yml
+#  when: jboss_eap_ldap is defined
+
+- name: Configure EAP security realm(s)
+  include: configure_security_realm.yml
+  with_items: "{{ jboss_eap_security_realms | default([]) }}"
+  loop_control:
+    loop_var: security_realms
+
+- name: Configure EAP security domain(s)
+  include: configure_security_domain.yml
+  with_items: "{{ jboss_eap_security_domains | default([]) }}"
+  loop_control:
+    loop_var: security_domain
+
+- name: Create application users
+  include: setup_application_users.yml
+  when: jboss_eap_application_users is defined
+
+- name: Create management users
+  include: setup_management_users.yml
+  when: jboss_eap_management_users is defined
+
+- name: Configure EAP datasources
+  include: configure_datasource.yml
+  with_items: "{{ jboss_eap_datasources | default([]) }}"
+  loop_control:
+    loop_var: datasource

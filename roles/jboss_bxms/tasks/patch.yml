@@ -1,0 +1,63 @@
+---
+
+###
+#
+# WARNING: If updating to BPMS 6.4.6, a small SQL update is required first!
+# See: https://access.redhat.com/documentation/en-us/red_hat_jboss_bpm_suite/6.4/html/installation_guide/chap_patching_and_upgrading#applying_patches_in_red_hat_jboss_bpm_suite_6.3
+#
+###
+
+- name: "Extract BPMS Patch into {{ jboss_eap_install_temp_dir }}"
+  unarchive:
+    src: "{{ jboss_bxms_patch_name }}.zip"
+    dest: "{{ jboss_eap_install_temp_dir }}"
+  when: jboss_bxms_patch_source == "copy"
+
+- name: Download BPMS Patch and extract
+  unarchive:
+    src: "{{ jboss_bxms_patch_url }}"
+    dest: "{{ jboss_eap_install_temp_dir }}"
+    remote_src: yes
+  when: jboss_bxms_patch_source == "download"
+
+###
+#
+# This playbook does not currently support any webservers other than EAP.
+# However, the patch tool for BPMS does support other webservers.
+#
+# As of 6.4.0, the following list of patch types are supported:
+#
+# -- eap6.x             (EAP version 6)
+# -- eap6.x-bc 
+# -- eap6.x-dashbuilder
+# -- eap6.x-kie-server
+# -- eap7.x             (EAP version 7)
+# -- eap7.x-bc
+# -- eap7.x-dashbuilder
+# -- eap7.x-kie-server
+# -- generic            (Generic Java server like Tomcat)
+# -- generic-bc
+# -- generic-dashbuilder
+# -- generic-kie-server
+# -- was8               (IBM WebSphere 8)
+# -- was8-bc
+# -- was8-dashbuilder
+# -- was8-kie-server
+# -- wls12c             (Oracle WebLogic 12c)
+# -- wls12c-bc
+# -- wls12c-dashbuilder
+# -- wls12c-kie-server
+# -- bpmsuite-engine
+# -- planner-engine
+# -- supplementary-tools
+#
+# See: https://access.redhat.com/documentation/en-us/red_hat_jboss_bpm_suite/6.4/html/installation_guide/chap_patching_and_upgrading#applying_patches_in_red_hat_jboss_bpm_suite_6.3
+#
+###
+- name: Patch BPMS in EAP 6.x
+  command: "./apply-updates.sh {{ jboss_eap_install_path }} eap6.x chdir={{ jboss_eap_install_temp_dir }}/{{ jboss_bxms_patch_name }}"
+  when: jboss_eap_base_version | float == 6.0
+
+- name: Patch BPMS in EAP 7.x
+  command: "./apply-updates.sh {{ jboss_eap_install_path }} eap7.x chdir={{ jboss_eap_install_temp_dir }}/{{ jboss_bxms_patch_name }}"
+  when: jboss_eap_base_version | float == 7.0

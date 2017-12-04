@@ -1,0 +1,87 @@
+---
+
+- include: set_facts.yml
+
+- include: check_variables.yml
+
+# Install BxMS after EAP
+- name: Install BxMS
+  include: install.yml
+  when: not jboss_bxms_exists
+
+# Perfom JBoss EAP configuration tasks after BxMS install
+- name: Ensure that EAP is configured
+  include_role:
+    name: jboss_eap
+    tasks: configure_eap
+  vars:
+    jboss_eap_configure: true
+
+# Apply maven customizations
+- name: Apply Maven settings
+  include: maven.yml
+  when: jboss_bxms_use_custom_maven_settings | bool
+
+# Deploy custom libraries
+- name: Deploy custom Business Central libraries
+  include: deploy_custom_lib.yml
+  with_items: "{{ jboss_bxms_business_central_custom_libs | default([]) }}"
+  loop_control:
+    loop_var: custom_lib
+  vars:
+    custom_lib_dir: "{{ jboss_bxms_business_central_location }}/WEB-INF/lib/"
+  when:
+    - jboss_bxms_kie_installation_type != "unmanaged"
+    - jboss_bxms_bc_installation_type != "none"
+
+- name: Deploy custom Dashbuilder libraries
+  include: deploy_custom_lib.yml
+  with_items: "{{ jboss_bxms_dashbuilder_custom_libs | default([]) }}"
+  loop_control:
+    loop_var: custom_lib
+  vars:
+    custom_lib_dir: "{{ jboss_bxms_dashbuilder_location }}/WEB-INF/lib/"
+  when:
+    - jboss_bxms_kie_installation_type != "unmanaged"
+    - jboss_bxms_bc_installation_type != "none"
+
+- name: Deploy ustom KIE Server libraries
+  include: deploy_custom_lib.yml
+  with_items: "{{ jboss_bxms_kie_server_custom_libs | default([]) }}"
+  loop_control:
+    loop_var: custom_lib
+  vars:
+    custom_lib_dir: "{{ jboss_bxms_kie_server_location }}/WEB-INF/lib/"
+  when:
+    - jboss_bxms_bc_installation_type != "standalone" or jboss_bxms_bc_installation_type != "manager"
+    - jboss_bxms_kie_installation_type == "none"
+
+- name: Configure jboss-web settings for Business Central
+  include: configure_jboss_web_xml.yml
+  vars:
+    jboss_web_xml: "{{ jboss_bxms_business_central_location }}/WEB-INF/jboss-web.xml"
+    jndi_name: "{{ jboss_bxms_business_central_jndi_name | default('') }}"
+    security_domain: "{{ jboss_bxms_business_central_security_domain | default('') }}"
+  when:
+    - jboss_bxms_kie_installation_type != "unmanaged"
+    - jboss_bxms_bc_installation_type != "none"
+
+- name: Configure jboss-web settings for Dashbuilder
+  include: configure_jboss_web_xml.yml
+  vars:
+    jboss_web_xml: "{{ jboss_bxms_dashbuilder_location }}/WEB-INF/jboss-web.xml"
+    jndi_name: "{{ jboss_bxms_dashbuilder_jndi_name | default('') }}"
+    security_domain: "{{ jboss_bxms_dashbuilder_security_domain | default('') }}"
+  when:
+    - jboss_bxms_kie_installation_type != "unmanaged"
+    - jboss_bxms_bc_installation_type != "none"
+
+- name: Configure jboss-web settings for KIE Server
+  include: configure_jboss_web_xml.yml
+  vars:
+    jboss_web_xml: "{{ jboss_bxms_kie_server_location }}/WEB-INF/jboss-web.xml"
+    jndi_name: "{{ jboss_bxms_kie_server_jndi_name | default('') }}"
+    security_domain: "{{ jboss_bxms_kie_server_security_domain | default('') }}"
+  when:
+    - jboss_bxms_bc_installation_type != "standalone" or jboss_bxms_bc_installation_type != "manager"
+    - jboss_bxms_kie_installation_type == "none"

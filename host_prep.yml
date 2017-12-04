@@ -1,0 +1,23 @@
+---
+- name: System Preparation
+  hosts: all
+
+  roles:
+    - role: iptables_mgmt
+      iptables_accept_input:
+      - port: "{{ jboss_eap_bind_port_http }}"
+      - port: "{{ jboss_eap_bind_port_https }}"
+      - port: "{{ jboss_eap_bind_port_http_management }}"
+      - port: "{{ jboss_eap_bind_port_https_management }}"
+
+  tasks:
+    - name: Limits configuration for jboss-as user
+      copy:
+        dest: /etc/security/limits.d/jboss-as.conf
+        content: |
+          # Configuration for jboss-as limits. Managed by Ansible host_prep playbook.
+          #<domain>  <type>  <item>  <value>
+          jboss-as   soft    core    unlimited
+          jboss-as   hard    core    unlimited
+          jboss-as   soft    nofile  4096
+          jboss-as   hard    nofile  4096

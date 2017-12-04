@@ -1,0 +1,48 @@
+---
+
+- name: Read system property {{ system_property.key }}
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /system-property={{ system_property.key }}:read-resource
+  register: get_system_property
+  check_mode: no
+  changed_when: false
+  retries: 5
+  until: >-
+    get_system_property.rc == 0 or
+    'not found' in get_system_property.stdout
+  failed_when: >-
+    get_system_property.rc != 0 and
+    'not found' not in get_system_property.stdout
+  tags:
+    - jboss_eap
+
+- name: Set system property {{ system_property.key }}
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: '/system-property={{ system_property.key }}:add(value="{{ system_property.value }}")'
+    read_system_property: "{{ get_system_property.stdout | parse_jbosscli_output }}"
+  when: >-
+    get_system_property.rc != 0
+  notify: "{{ restart_jboss_handler }}"
+  tags:
+    - jboss_eap
+
+- name: Update system property {{ system_property.key }}
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: '/system-property={{ system_property.key }}:write-attribute(name=value,value="{{ system_property.value }}")'
+    read_system_property: "{{ get_system_property.stdout | parse_jbosscli_output }}"
+  when: >-
+    get_system_property.rc == 0 and
+    read_system_property.result.value != system_property.value
+  notify: "{{ restart_jboss_handler }}"
+  tags:
+    - jboss_eap

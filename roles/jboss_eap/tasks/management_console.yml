@@ -1,0 +1,27 @@
+---
+
+- name: Read management-interface http-interface
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/management-interface=http-interface/:read-resource
+  check_mode: no
+  changed_when: false
+  register: read_management_http_interface
+  until: read_management_http_interface.rc == 0
+  retries: 5
+
+- name: Enable/Disable management-interface http-interface
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/management-interface=http-interface/:write-attribute(name=console-enabled,value={{ "false" if jboss_eap_http_management_disable|bool else "true" }})
+    http_interface: >-
+      {{ read_management_http_interface.stdout | parse_jbosscli_output }}
+  when: >-
+    http_interface.result["console-enabled"] | bool == jboss_eap_http_management_disable | bool
+  notify: "{{ restart_jboss_handler }}"

@@ -1,0 +1,16 @@
+# Created based on https://access.redhat.com/solutions/1320133
+
+[Unit]
+Description=JBoss EAP Systemctl script
+After=NetworkManager.service
+
+[Service]
+Type=forking
+ExecStart=/etc/init.d/{{ jboss_service_file }} start
+ExecStop=/etc/init.d/{{ jboss_service_file }} stop
+ExecReload=/etc/init.d/{{ jboss_service_file }} restart
+PIDFile={{ jboss_service_data_dir }}/{{ jboss_eap_service_name }}.pid
+Environment="JBOSS_CONF={{ jboss_service_conf_file }}"
+
+[Install]
+WantedBy=multi-user.target

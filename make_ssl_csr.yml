@@ -1,0 +1,58 @@
+- hosts: jboss_eap_hosts
+  tasks:
+  - set_fact:
+      keyfile: "/etc/pki/tls/private/{{ inventory_hostname }}.key"
+      csrfile: "/etc/pki/tls/certs/{{ inventory_hostname }}.csr"
+
+  - openssl_privatekey:
+      path: "{{ keyfile }}"
+      type: RSA
+      size: 4096
+
+  - stat:
+      path: "{{ csrfile }}"
+    register: csrstat
+
+  - when: not csrstat.stat.exists
+    block:
+    - copy:
+        dest: "{{ jboss_eap_install_temp_dir }}/{{ inventory_hostname }}-openssl.cnf"
+        src: /etc/pki/tls/openssl.cnf
+        remote_src: yes
+    - blockinfile:
+        path: "{{ jboss_eap_install_temp_dir }}/{{ inventory_hostname }}-openssl.cnf"
+        block: |
+          [SAN]
+          subjectAltName=DNS:{{ inventory_hostname }}
+    - shell: >-
+        openssl req
+        -nodes
+        -new
+        -key {{ keyfile }}
+        -out {{ csrfile }} 
+        -subj "/C=US/ST=NC/L=North Carolina/O=example.com/CN={{ inventory_hostname }}"
+        -reqexts SAN
+        -config "{{ jboss_eap_install_temp_dir }}/{{ inventory_hostname }}-openssl.cnf"
+    - file:
+        path: /tmp/{{ inventory_hostname }}-openssl.cnf
+        state: absent
+
+  ### The openssl_csr module is coming in ansible 2.4
+  #- openssl_csr:
+  #    msg: bar
+  #    path: "{{ csrfile }}"
+  #    commonName: "{{ inventory_hostname }}"
+  #    organizationName: RedHat.com
+  #    localityName: North Carolina
+  #    stateOrProvinceName: NC
+  #    countryName: US
+  #    privatekey_path: "{{ keyfile }}"
+
+  - file:
+      path: "{{ csrfile }}"
+      mode: u=rw,g=r,o=r
+
+  - name: Copy CSR to local csr directory.
+    command: >-
+      scp "{{ inventory_hostname }}:{{ csrfile }}" csr/
+    delegate_to: localhost

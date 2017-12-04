@@ -1,0 +1,111 @@
+---
+- name: Copy jdbc driver jar
+  copy:
+    src: "{{ datasource.driver.module_jar }}"
+    dest: "{{ jboss_eap_bin_dir }}/{{ datasource.driver.module_jar | basename }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    mode: "u=rw,g=r,o=r"
+
+- name: Install jdbc driver
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      module add
+      --name={{ datasource.driver.module_name }}
+      --resources={{ jboss_eap_bin_dir }}/{{ datasource.driver.module_jar | basename }}
+      --dependencies=javax.api,javax.transaction.api,javax.xml.bind.api
+  register: install_jdbc
+  failed_when: install_jdbc.rc != 0 and ' already exists ' not in install_jdbc.stdout
+  changed_when: install_jdbc.rc == 0
+
+- name: Get list of global modules
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=ee:read-attribute(name=global-modules)
+  changed_when: false
+  register: list_global_modules
+  until: list_global_modules.rc == 0
+  retries: 5
+
+- name: Make jdbc driver module global
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: '/subsystem=ee:list-add(name=global-modules,value={name="{{ datasource.driver.module_name }}"})'
+    global_modules: '{{ list_global_modules.stdout | parse_jbosscli_output }}'
+  when: >-
+    global_modules.result == None or
+    { "name": datasource.driver.module_name } not in global_modules.result
+
+- name: Make jdbc driver module global
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: '/subsystem=ee:list-add(name=global-modules,value={name="{{ datasource.driver.module_name }}"})'
+    global_modules: '{{ list_global_modules.stdout | parse_jbosscli_output }}'
+  when: >-
+    global_modules.result == None or
+    { "name": datasource.driver.module_name } not in global_modules.result
+
+- name: Register jdbc driver
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=datasources/jdbc-driver={{datasource.driver.driver_name}}:add(driver-name={{ datasource.driver.driver_name }},driver-module-name={{ datasource.driver.module_name }},driver-datasource-class-name={{datasource.driver.datasource_class}},driver-xa-datasource-class-name={{datasource.driver.xa_datasource_class}})
+  register: register_jdbc
+  failed_when: register_jdbc.rc != 0 and 'Duplicate resource' not in register_jdbc.stdout
+  changed_when: register_jdbc.rc == 0
+
+- name: Add datasource
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      {% if datasource.type == 'xa-data-source' -%}
+      xa-data-source add
+      --same-rm-override=false
+      {% if datasource.driver.driver_name == 'sqlserver' -%}
+      --xa-datasource-properties={"ServerName"=>"{{ datasource.server_name }}","PortNumber"=>"{{ datasource.server_port }}","DatabaseName"=>"{{ datasource.database_name }}","SelectMethod"=>"cursor"}
+      {% else -%}
+      --xa-datasource-properties={"URL"=>"{{ datasource.connection_url }}"} 
+      {% endif -%}
+      {% else -%}
+      data-source add
+      --connection-url={{ datasource.connection_url }}
+      {% endif -%}
+      --name={{ datasource.name }}
+      --jndi-name={{ datasource.jndi_name }}
+      --driver-name={{ datasource.driver.driver_name }}
+      --user-name={{ datasource.user_name }}
+      --password={{ datasource.password }}
+      --validate-on-match=true
+      --background-validation=false
+      {% if datasource.driver.driver_name == 'oracle' -%}
+      --valid-connection-checker-class-name=org.jboss.jca.adapters.jdbc.extensions.oracle.OracleValidConnectionChecker
+      --exception-sorter-class-name=org.jboss.jca.adapters.jdbc.extensions.oracle.OracleExceptionSorter
+      --stale-connection-checker-class-name=org.jboss.jca.adapters.jdbc.extensions.oracle.OracleStaleConnectionChecker
+      {% endif -%}
+      {% if datasource.driver.driver_name == 'sqlserver' -%}
+      --valid-connection-checker-class-name=org.jboss.jca.adapters.jdbc.extensions.mssql.MSSQLValidConnectionChecker
+      --exception-sorter-class-name=org.jboss.jca.adapters.jdbc.extensions.mssql.MSSQLExceptionSorter
+      {% endif -%}
+      {% if datasource.options is defined -%}
+      {% for k, v in datasource.options -%}
+      --{{ k }}={{ v }}
+      {% endfor -%}
+      {% endif -%}
+  ###" - Comment to compensate for vim not handling quotes correctly.
+  register: add_datasource
+  failed_when: add_datasource.rc != 0 and ' Duplicate resource ' not in add_datasource.stdout
+  changed_when: add_datasource.rc == 0

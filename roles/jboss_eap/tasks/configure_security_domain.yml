@@ -1,0 +1,97 @@
+---
+- name: Read security domain resource for {{ security_domain.name }}
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=security/security-domain={{ security_domain.name }}:read-resource
+  check_mode: no
+  changed_when: false
+  failed_when: false
+  register: read_security_domain
+  tags:
+    - eap
+
+- name: Define security domain {{ security_domain.name }}
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=security/security-domain={{ security_domain.name }}:add(cache-type=default)
+  when: >-
+    read_security_domain.rc != 0
+
+- name: Add authentication to security domain {{ security_domain.name }}
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  args:
+    chdir: "{{ jboss_eap_bin_dir }}"
+  vars:
+    cmd: >-
+      /subsystem=security/security-domain={{ security_domain.name }}/authentication=classic:add
+    read_sd: >-
+      {{ read_security_domain.stdout | parse_jbosscli_output }}
+  when: >-
+    read_security_domain.rc != 0 or
+    read_sd.result.authentication == None or
+    'classic' not in  read_sd.result.authentication
+
+- name: Read authentication for security domain {{ security_domain.name }}
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  args:
+    chdir: "{{ jboss_eap_bin_dir }}"
+  vars:
+    cmd: >-
+      /subsystem=security/security-domain={{ security_domain.name }}/authentication=classic:read-resource
+  register: read_authentication
+  check_mode: no
+  changed_when: false
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Define login modules for security domain {{ security_domain.name }}
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  args:
+    chdir: "{{ jboss_eap_bin_dir }}"
+  vars:
+    cmd: >-
+      /subsystem=security/security-domain={{ security_domain.name }}/authentication=classic/login-module={{ login_module.name }}:add(code={{ login_module.code }},flag={{ login_module.flag }},module-options=[{{ login_module.module_options | to_jbosscli_optionslist }}])
+    read_auth: >-
+      {{ read_authentication.stdout | parse_jbosscli_output }}
+  with_items: "{{ security_domain.authentication.login_modules | default([]) }}"
+  loop_control:
+    loop_var: login_module
+  when: >-
+    read_auth.result['login-module'] == None or
+    not login_module.name in read_auth.result['login-module']
+
+- name: Define role mapping for security domain {{ security_domain.name }}
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /subsystem=security/security-domain={{ security_domain.name }}/authentication=classic/login-module=RoleMapping:add(flag=optional,code=RoleMapping,module-options=[("rolesProperties"=>"file:///${jboss.server.config.dir}/{{ security_domain.name }}-role-mapping.properties")])
+    read_auth: >-
+      {{ read_authentication.stdout | parse_jbosscli_output }}
+  when: >-
+    'role_mapping' in security_domain.authentication and (
+      read_auth.result['login-module'] == None or
+      not 'RoleMapping' in read_auth.result['login-module']
+    )
+
+- name: Define role mapping properties for security domain {{ security_domain.name }}
+  copy:
+    dest: '{{ jboss_eap_config_dir }}/{{ security_domain.name }}-role-mapping.properties'
+    content: '{{ security_domain.authentication.role_mapping }}'
+    owner: '{{ jboss_eap_user }}'
+    group: '{{ jboss_eap_group }}'
+    mode: u=rw,g=r,o=r
+  when: >-
+    'role_mapping' in security_domain.authentication

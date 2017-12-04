@@ -1,0 +1,447 @@
+---
+
+###########################
+# EAP PREREQUISITES
+# -----------------
+# jboss_eap_prereq_pkg_names = Package names (as found in the OS' package manager) of Linux packages to install before EAP is installed
+# 
+###########################
+jboss_eap_prereq_pkg_names:
+  - java-1.8.0-openjdk-devel
+  - unzip
+  - initscripts
+
+###########################
+# EAP USERS, FILES, AND FOLDERS
+# -----------------------------
+# Variables to define EAP users, files, and folders.
+# Some variables required for EAP installation are intentionally left out of the `jboss_eap_hosts.yml` file
+#   to prevent tampering with standard EAP locations.
+#
+# ***
+# WARNING: ONLY alter variables from this section in the `jboss_eap_hosts.yml` file!
+# ***
+#
+# jboss_eap_user = User under which EAP services, files, and folders will be created
+# jboss_eap_group = Group under which EAP services, files, and folders will be created
+# jboss_eap_install_temp_dir = Temporary folder where artifacts will be stored during the installation process
+# jboss_eap_install_base_dir = Base directory where EAP will be installed
+# jboss_eap_install_path = Folder under base directory to conform to folder structure which patches expect
+# jboss_eap_bin_dir = Directory for binaries within EAP installation
+# jboss_eap_config_dir = Directory for configuration files within EAP installation
+# jboss_eap_deployment_dir = Directory for deployed files within EAP installation
+# jboss_eap_logging_path = Folder where EAP log files will be written
+# jboss_eap_logging_timezone = Timezone to use for log time stamps
+#
+###########################
+jboss_eap_user: jboss-eap
+jboss_eap_group: jboss-eap
+jboss_eap_install_temp_dir: /tmp
+jboss_eap_install_base_dir: /opt/{{ jboss_eap_user }}
+jboss_eap_install_path: "{{ jboss_eap_install_base_dir }}/jboss-eap-{{jboss_eap_base_version}}.0"
+jboss_eap_bin_dir: "{{ jboss_eap_install_path }}/bin"
+jboss_eap_config_dir: "{{ jboss_eap_install_path }}/{{ jboss_eap_mode }}/configuration"
+jboss_eap_deployment_dir: "{{ jboss_eap_install_path }}/{{ jboss_eap_mode }}/deployments"
+jboss_eap_logging_path: /var/log
+jboss_eap_logging_timezone: America/Chicago
+
+###########################
+# EAP VERSION NUMBER
+# -------------------
+# jboss_eap_base_version = Major version of EAP to be installed
+#                          NOTE: This must match the artifact's major version!
+# 
+###########################
+jboss_eap_base_version: 7
+
+###########################
+# EAP INSTALLATION SOURCES
+# --------------------
+# This Ansible script supports two ways to obtain the EAP source artifacts.
+#   Method 1 = Provide the artifacts in the "files" folder as ZIP archives
+#   Method 2 = Provide URLs where the artifacts can be downloaded from
+#
+# jboss_eap_artifact_name = File name of the provided artifact without a file extension (Method 1)
+# jboss_eap_artifact_source = "copy" (Method 1) or "download" (Method 2)
+# jboss_eap_artifact_url = URL for downloading (Method 2)
+# jboss_eap_artifact_checksum = MD5 checksum to verify that artifact is uncorrupted (Methods 1 & 2)
+# 
+###########################
+jboss_eap_artifact_name: jboss-eap-7.0.0
+jboss_eap_artifact_source: copy
+jboss_eap_artifact_url: https://access.redhat.com/jbossnetwork/restricted/softwareDownload.html?softwareId=37393
+jboss_eap_artifact_checksum: md5:cd02482daa0398bf5500e1628d28179a
+
+###########################
+# EAP PATCH SOURCES
+# --------------------
+# This Ansible script supports two ways to obtain the EAP patch artifacts.
+#   Method 1 = Provide the artifacts in the "files" folder as ZIP archives
+#   Method 2 = Provide URLs where the artifacts can be downloaded from
+#
+# jboss_eap_apply_patch = Whether to apply a patch at all (true/false)
+# jboss_eap_patch_name = File name of the provided artifact without a file extension (Method 1)
+# jboss_eap_patch_source = "copy" (Method 1) or "download" (Method 2)
+# jboss_eap_patch_url = URL for downloading (Method 2)
+# jboss_eap_patch_checksum = MD5 checksum to verify that artifact is uncorrupted (Methods 1 & 2)
+# 
+###########################
+jboss_eap_apply_patch: true
+jboss_eap_patch_name: jboss-eap-7.0.8-patch
+jboss_eap_patch_source: copy
+jboss_eap_patch_artifact_url: https://access.redhat.com/jbossnetwork/restricted/softwareDownload.html?softwareId=51801
+jboss_eap_patch_artifact_checksum: md5:daae291155a259e9f1d2255d36866551
+
+###########################
+# EAP RUNTIME OPTIONS
+# --------------------
+# jboss_eap_service_name = Name under which the EAP service will be installed to the OS
+# jboss_eap_config = Which EAP configuration file to use.
+# jboss_eap_mode = "standalone" or "domain"
+# jboss_eap_init_java_opts = Java options to use when running the EAP server (overrides JAVA_OPTS)
+# jboss_eap_extra_java_opts = Additional Java options to use when running the EAP server (appends to existing JAVA_OPTS)
+# jboss_eap_system_properties = If provided, this system property(s) are added to the EAP server using the "-D" command-line option
+# jboss_eap_properties_files = If provided, this file(s) will be created with the specified values in the EAP configuration directory
+# 
+###########################
+jboss_eap_service_name: jboss-eap
+#
+# Which configuration file of EAP's to use for startup
+#
+# Example for basic configuration:
+# jboss_eap_config: standalone.xml
+# 
+# Example for full configuration:
+# jboss_eap_config: standalone-full.xml
+#
+jboss_eap_config: standalone.xml
+jboss_eap_mode: standalone
+jboss_eap_init_java_opts: {}
+#
+# Examples of valuable "jboss_eap_extra_java_opts":
+#
+# To override the port used for BxMS' Git SSH connection
+# JAVA_OPTS="$JAVA_OPTS -Dorg.uberfire.nio.git.ssh.port=10001"
+#
+# To override where the local Maven repository for BxMS will be created
+# JAVA_OPTS="$JAVA_OPTS -Dorg.guvnor.m2repo.dir=$EAP_HOME/jboss-eap-7.0/bin/.m2/repositories"
+#
+# To override where the Git metadata for BxMS will be created
+# JAVA_OPTS="$JAVA_OPTS -Dorg.uberfire.metadata.index.dir=$EAP_HOME/jbos-eap-7.0/bin"
+#
+# To override where the Git directory for BxMS will be created
+# JAVA_OPTS="$JAVA_OPTS -Dorg.uberfire.nio.git.dir=$EAP_HOME/jboss-eap-7.0/bin"
+jboss_eap_extra_java_opts: {}
+# Properties to set in standalone.xml
+#
+# Example:
+# jboss_eap_system_properties:
+#   com.example.foo1: bar
+#   com.example.foo2: bar.jar
+#
+jboss_eap_system_properties: {}
+# List of properties files to place in the EAP configuration directory along
+# with properties to set there.
+#
+# Example for creating LDAP user mapping property file:
+# jboss_eap_properties_files:
+#   - path: jbpm.user.info.properties
+#     properties:
+#       ldap.bind.user: ldapuser@example.com
+#       ldap.bind.pwd: p4ssw0rd
+#       ldap.user.ctx: ou=accounts,dc=example,dc=com
+#       ldap.role.ctx: ou=accounts,dc=example,dc=com
+#       ldap.user.filter: (sAMAccountName={0})
+#       ldap.role.filter: (cn={0})
+#       ldap.user.roles.filter: (member={0})
+#       ldap.user.attr.id: sAMAccountName
+#       ldap.role.attr.id: member
+#       ldap.name.attr.id: cn
+#       java.naming.provider.url: ldaps://ldap.example.com:636
+jboss_eap_properties_files: []
+
+###########################
+# EAP IP AND PORT OPTIONS
+# --------------------
+# jboss_eap_bind_web_address = IP address which the base server will listen on, or "0.0.0.0" to listen on all IPv4 IPs
+# jboss_eap_bind_management_address = IP address which the management console for the server will listen on, or "0.0.0.0" to listen on all IPv4 IPs
+# jboss_eap_bind_port_http = The standard HTTP port to which the server will bind
+# jboss_eap_bind_port_https = The standard HTTPS port to which the server will bind
+# jboss_eap_bind_port_http_management = The standard HTTP port to which the management console will bind
+# jboss_eap_bind_port_https_management = The standard HTTPS port to which the management console will bind
+# 
+###########################
+jboss_eap_bind_web_address: 127.0.0.1
+jboss_eap_bind_management_address: 127.0.0.1
+jboss_eap_bind_port_http: 8080
+jboss_eap_bind_port_https: 8443
+jboss_eap_bind_port_http_management: 9990
+jboss_eap_bind_port_https_management: 9993
+
+###########################
+# EAP SECURITY STORE/CERTIFICATE OPTIONS
+# --------------------
+# jboss_eap_cli_catrust = If provided, this certificate(s) will be used to authenticate against the server for each JBoss CLI call
+# jboss_eap_keystores = If provided, this keystore(s) will be used by the server for certificate authentication
+# jboss_eap_management_ldap = If provided, this LDAP(s) will be used by the server for user authentication
+# jboss_eap_security_domains = If provided, this domain(s) will be used by the server for user authentication
+# 
+###########################
+# When SSL is used to secure the management interface, the SSL CA certificate
+# associated with those certificates must be imported into the JBoss CLI
+# truststore. The CA certificate can be stored on the remote system or stored
+# locally and copied to the remote.
+#
+# Example with local CA certificate source copied from `files/` directory.
+# relative to the calling playbook.
+#
+# jboss_eap_cli_catrust:
+#    - cacert: example-ca.crt
+#      alias: trust_F05A219BBD47492CAAFDE9DC07B04C42DB33EC9D
+#
+# Example with CA cert on remote server:
+#
+# jboss_eap_cli_catrust:
+#    - cacert: /etc/pki/ca-trust/source/anchors/example-ca.crt
+#      remote_src: true
+#      alias: trust_F05A219BBD47492CAAFDE9DC07B04C42DB33EC9D
+#
+jboss_eap_cli_catrust: []
+#
+# JBoss EAP can be configured to secure the HTTP communication with both the
+# management and application undertow systems. For both of these there must
+# first be defined a keystore with the SSL keypair and then a reference to
+# the keystore from the management console and undertow configuration.
+
+# Define keystores for HTTPS:
+#
+# Keystores for HTTP can be configured in one of three ways.
+#
+# * A JKS keystore may be generated with a self-signed certificate.
+#
+# * A JKS keystore file may be copied to the server.
+#
+# * A JKS keystore may be generated using an X509 certificate file and key.
+#
+# If a self-signed certificate is generated then it will be automatically
+# imported into the JBoss CLI truststore.
+#
+# If an existing JKS keystore is used, it may optionally contain a CA
+# certificate used to validate the server certificate. The alias for this
+# certificate may be given with the key `jboss_cli_import`.
+#
+# If a keystore is created from an SSL certificate or if a copied JKS keystore
+# does not contain the signing CA certificate, then the CA certificate should
+# be given with `jboss_eap_cli_catrust`.
+#
+# jboss_eap_keystores:
+#   # Generate self-signed certificate
+#   - file: selfsigned.keystore
+#     alias: {{ inventory_hostname }}
+#     storepass: st0r3p4ss
+#     dn_string: CN={{ inventory_hostname }},O=Example.com,L=Chicago,S=Illinois,C=US
+#   # Copy existing JKS keystore
+#   - file: copied.keystore
+#     alias: {{ inventory_hostname }}
+#     storepass: st0r3p4ss
+#     src: /path/to/local/keystore.jks
+#     jboss_cli_import: exampleca
+#   # Create keystore from cert and key file
+#   - file: https.keystore
+#     alias: "{{ inventory_hostname }}"
+#     storepass: st0r3p4ss
+#     remote_src: true
+#     cert: /etc/pki/tls/certs/{{ inventory_hostname }}.crt
+#     key: /etc/pki/tls/private/{{ inventory_hostname }}.key
+#
+jboss_eap_keystores: []
+#
+# `jboss_eap_management_ldap` configures LDAP authentication to the management
+# console. If this is set, then properties file based local authentication is
+# disabled.
+#
+# This parameter must specify a dictionary with two keys, `connection` and
+# `authentication`.
+#
+# The `connection` value is used to create the outgoing LDAP connection and
+# consists of information required to bind to LDAP in order to search for
+# user information. The `search_dn` and `search_credential` are used to bind
+# to the LDAP server specified in `url`.
+#
+# The `authentication` parameter configures LDAP for the ManagementRealm and
+# must define the `base_dn` used to search for users and the
+# `username_attribute` used in these searches.
+#
+# Example:
+#
+# jboss_eap_management_ldap:
+#   connection:
+#     search_dn: "cn=jbosseap,Ou=Service Accounts,ou=WSS,Ou=accounts,dc=example,dc=com"
+#     search_credential: p4ssw0rd
+#     url: ldaps://idm.example.com:636
+#   authentication:
+#     base_dn: Ou=accounts,dc=example,dc=com
+#     username_attribute: sAMAccountName
+#
+jboss_eap_management_ldap: {}
+#
+# JBoss EAP security-domains are used for application authentication. Currently
+# only LDAP authentication is supported. Typically an application refers to the
+# security domain through its jboss-web.xml configuration.
+#
+# The variable `jboss_eap_security_domains` should contain a list of
+# dictionaries defining the security-domain. Each security domain must
+# have a key called `authentication`. This is for future support for futher
+# security-domain functionality. Under `authentication` there must be a
+# `login_modules` definition and there may be a `role_mapping` definition.
+# The `login_modules` is an array of configuration options that is plugged into
+# a call to create the login-module as follows:
+#
+#   /subsystem=security/security-domain=DOMAIN_NAME/authentication=classic/login-module=LOGIN_MODULE_NAME:add(\
+#   code=LOGIN_MODULE_CODE,\
+#   flag=LOGIN_MODULE_FLAG,\
+#   module-options=[MODULE_OPTIONS]\
+#   )
+#
+# Keys and values for module options are formatted for JBoss EAP in JBoss CLI
+# format. Consult documentation for valid options and values. Below is a
+# working example for LDAPS authentication.
+#
+# jboss_eap_security_domains:
+#   - name: EXAMPLE_LDAP
+#     authentication:
+#       login_modules:
+#       - name: LdapExtended
+#         code: org.jboss.security.auth.spi.LdapExtLoginModule
+#         flag: required
+#         module_options:
+#           allowEmptyPasswords: false
+#           baseCtxDN: Ou=accounts,dc=example,dc=com
+#           baseFilter: (sAMAccountName={0})
+#           bindCredential: p4ssw0rd
+#           bindDN: cn=eapuser,Ou=Service Accounts,Ou=accounts,dc=example,dc=com
+#           java.naming.factory.initial: com.sun.jndi.ldap.LdapCtxFactory
+#           java.naming.provider.url: ldaps://ad.example.com:636
+#           java.naming.referral: follow
+#           java.naming.security.authentication: simple
+#           java.naming.security.protocol: ssl
+#           roleAttributeID: memberOf
+#           roleAttributeIsDN: "true"
+#           roleFilter: (member={1})
+#           roleNameAttributeID: cn
+#           rolesCtxDN: ou=accounts,dc=example,dc=com
+#           roleRecursion: 4
+#           searchScope: SUBTREE_SCOPE
+#           throwValidateError: "true"
+#       role_mapping: |
+#         dev-bpm-admin=admin,developer,analyst,user,manager,reviewer,kie-server,task-group,rest-all,kiemgmt
+#         dev-bpm-developer=developer,kie-server,task-group,rest-all
+#         dev-bpm-analyst=analyst
+#         dev-bpm-user=user,task-group,rest-all
+#         dev-bpm-manager=manager
+#         dev-bpm-business=reviewer,task-group
+#
+jboss_eap_security_domains: []
+
+###########################
+# EAP HTTPS OPTIONS
+# -----------------
+# EAP communicates over the HTTP protocol by default. It can be set to use the HTTPS protocol
+#   in addition or exclusively, as well as disabling HTTP traffic and other options.
+#
+# jboss_eap_https = If provided, this keystore(s) will be used to validate HTTPS traffic to non-administrative EAP traffic
+# jboss_eap_management_https = If provided, this keystore(s) will be used to validate HTTPS traffic to the EAP administration console
+# jboss_eap_http_redirect = If provided, all HTTP traffic will be redirected to this URL
+# jboss_eap_http_disable = Whether to allow HTTP traffic at all (true/false)
+# 
+###########################
+# To configure HTTPS for undertow, simply reference the keystore to use in the
+# `jboss_eap_https` parameter. For management console HTTPS, simply use
+# `jboss_eap_management_https`.
+#
+# jboss_eap_https:
+#   keystore: "{{ jboss_eap_keystores[0] }}"
+jboss_eap_https: {}
+#
+# jboss_eap_management_https:
+#   keystore: "{{ jboss_eap_keystores[0] }}"
+#
+jboss_eap_management_https: {}
+#
+# If only HTTPS should be used to communicate with applications, then it may
+# be desirable to redirect http traffic to another URL. A common configuration
+# is to redirect HTTP to HTTPS as shown:
+#
+# jboss_eap_http_redirect: https://{{ inventory_hostname }}:{{jboss_eap_bind_port_https}}%U
+jboss_eap_http_redirect: ""
+# HTTP may be disabled entirely for the undertow system with `jboss_eap_http_disable`.
+jboss_eap_http_disable: false
+
+###########################
+# EAP USER ACCESS OPTIONS
+# -----------------
+# Options to control how users access the administrative console or running applications in EAP.
+#
+# jboss_eap_management_users = If provided, this user(s) will have the specified access to the EAP server
+# jboss_eap_application_users = If provided, this user(s) will have the specified access to EAP applications (such as Business Central or KIE Server)
+# jboss_eap_http_management_disable = Whether to allow access to the EAP administrative console at all (true/false)
+# 
+###########################
+# By default the JBoss management console authenticates using properties files
+# for password checking. The variables `jboss_eap_management_users` and
+# `jboss_eap_application_users` may be set to add users as management users or
+# application users.
+#
+# Examples:
+#
+# jboss_eap_management_users:
+#   - user: jboss1
+#     groups: PowerUser,BillingAdmin
+#     password: jboss1
+#
+# jboss_eap_application_users:
+#   - user: appuser1
+#     groups: admin,developer,analyst,user,manager,reviewer,kie-server,task-group,rest-all,kiemgmt
+#     password: appuser1
+#
+jboss_eap_management_users: []
+jboss_eap_application_users: []
+jboss_eap_http_management_disable: false
+
+###########################
+# EAP DATA SOURCES
+# -----------------
+# jboss_eap_datasources = If provided, this datasource(s) will be added as EAP datasources
+# 
+###########################
+# The module_jar specified here must be present in the Ansible playbook's "files" directory for deployment.
+#
+# Example for an Oracle database:
+# jboss_eap_datasources:
+#   - name: myDS
+#     connection_str: "jdbc:oracle:thin:@//oracle.example.com:1521/foo"
+#     jndi_name: "java:jboss/datasources/myDS"
+#     user_name: myapp
+#     password: p4ssw0rd
+#     driver:
+#       type: "oracle"
+#       module_name: "com.oracle"
+#       module_jar: "ojdbc7.jar"
+#       driver_name: "oracle"
+#       driver_class: "oracle.jdbc.xa.client.OracleXADataSource"
+jboss_eap_datasources: []
+
+###########################
+# SKIP EAP CONFIGURATION
+# --------------------
+# jboss_eap_configure = Whether to skip configuring EAP options (true/false)
+#                            NOTE: This must be "false" when also installing BPMS, as some BPMS options may overwrite existing options.
+#                                  The BPMS installation will trigger EAP configuration automatically when it is safe to do so.
+#
+# DEFAULTS:
+# jboss_eap_configure: false
+###########################
+jboss_eap_configure: false
+
+# Handler called to restart JBoss EAP
+restart_jboss_handler: Restart JBoss Service

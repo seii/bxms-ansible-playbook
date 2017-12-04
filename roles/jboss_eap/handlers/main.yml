@@ -1,0 +1,42 @@
+---
+- name: Restart JBoss Service (non-systemd)
+  become: true
+  service:
+    name: "{{ jboss_eap_service_name }}"
+    state: restarted
+  when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "6"
+  tags:
+    - jboss_eap
+
+- name: Restart JBoss Service (systemd)
+  become: true
+  systemd:
+    name: "{{ jboss_eap_service_name }}"
+    state: restarted
+  when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "7"
+
+# Sanity test if everything was setup right and JBoss is running
+- name: Verify JBoss is running
+  wait_for:
+    port: "{{ jboss_eap_bind_port_https if jboss_eap_https_configured else jboss_eap_bind_port_http }}"
+    host: "{{ jboss_eap_bind_web_address }}"
+    timeout: 120
+  listen: Restart JBoss Service
+  when: >-
+    jboss_eap_http_configured or jboss_eap_https_configured
+
+- name: Check JBoss is available via HTTP
+  uri:
+    url: http://{{jboss_eap_bind_web_address}}:{{jboss_eap_bind_port_http}}
+  listen: Restart JBoss Service
+  when: >-
+    jboss_eap_http_configured and
+    not jboss_eap_http_redirect is defined
+
+- name: Check JBoss is available via HTTPS
+  uri:
+    url: "https://{{jboss_eap_bind_web_address}}:{{jboss_eap_bind_port_https}}"
+    validate_certs: false 
+  listen: Restart JBoss Service
+  when: >-
+    jboss_eap_https_configured

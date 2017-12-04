@@ -1,0 +1,9 @@
+---
+
+- name: Verify that marker line is present in iptables configuration
+  command: grep '^# Add customer requested ports after this line' {{ iptables_conf }}
+  changed_when: false
+
+- include: accept_input.yml
+  static: false
+  when: iptables_accept_input is defined

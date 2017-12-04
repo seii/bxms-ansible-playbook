@@ -1,0 +1,47 @@
+---
+##
+# Refer to JBoss EAP documentation
+# https://access.redhat.com/documentation/en-US/JBoss_Enterprise_Application_Platform/6.4/html/Installation_Guide/sect-Service_Configuration.html#Install_JBoss_Enterprise_Application_Platform_6_Red_Hat_Enterprise_Linux_Service
+# https://access.redhat.com/documentation/en/red-hat-jboss-enterprise-application-platform/7.0.beta/installation-guide/chapter-4-configuring-jboss-eap-to-run-as-a-service
+##
+
+- name: JBoss EAP Install Base Directory
+  become: true
+  file:
+    path: "{{ jboss_eap_install_base_dir }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    state: directory
+    mode: "755"
+  tags:
+    - jboss_eap
+
+- name: JBoss EAP Service Conf Directory
+  file:
+    path: "{{ jboss_service_conf_dir }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    state: directory
+    mode: "755"
+  tags:
+    - jboss_eap
+
+- name: JBoss EAP Service Log Directory
+  file:
+    path: "{{ jboss_service_log_dir }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    state: directory
+    mode: "755"
+  tags:
+    - jboss_eap
+
+- name: JBoss EAP Service Runtime Data Directory
+  file:
+    path: "{{ jboss_service_data_dir }}"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    state: directory
+    mode: "755"
+  tags:
+    - jboss_eap

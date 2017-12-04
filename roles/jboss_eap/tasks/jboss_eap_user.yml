@@ -1,0 +1,21 @@
+---
+
+- name: Create JBoss EAP Group
+  group:
+    name: "{{ jboss_eap_group }}"
+    system: yes
+    state: present
+    gid: "400"
+  tags:
+    - jboss_eap
+
+- name: Create JBoss EAP User
+  user:
+    name: "{{ jboss_eap_user }}"
+    comment: "JBoss EAP User"
+    uid: "400"
+    group: "{{ jboss_eap_group }}"
+    home: "{{ jboss_eap_install_base_dir | regex_replace('/?$','/') }}"
+    shell: "/bin/bash"
+  tags:
+    - jboss_eap

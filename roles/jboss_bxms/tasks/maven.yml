@@ -1,0 +1,19 @@
+---
+
+- name: Maven .m2 directory
+  file:
+    state: directory
+    path: "{{ jboss_bxms_maven_repo_dir }}/.m2"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    mode: u=rwx,g=rx,o=
+
+- name: Custom maven setting file
+  template:
+    src: maven-settings.xml.j2
+    dest: "{{ jboss_bxms_maven_repo_dir }}/.m2/settings.xml"
+    owner: "{{ jboss_eap_user }}"
+    group: "{{ jboss_eap_group }}"
+    mode: u=rw,g=r,o=
+  vars:
+    maven_repos: "{{ jboss_bxms_maven_repos }}"

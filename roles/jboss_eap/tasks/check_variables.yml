@@ -1,0 +1,12 @@
+---
+- name: Check for defined EAP user and group
+  fail:
+    msg: "Please define an EAP user (jboss_eap_user) and group (jboss_eap_group)"
+  when:
+    - jboss_eap_user is not defined
+    - jboss_eap_group is not defined
+
+#- name: 
+#  fail:
+#    msg: ""
+#  when: 

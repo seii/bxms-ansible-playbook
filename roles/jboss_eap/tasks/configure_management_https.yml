@@ -1,0 +1,62 @@
+---
+- name: Get ManagementRealm security realm
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/security-realm=ManagementRealm/:read-resource
+  check_mode: no
+  changed_when: false
+  register: get_management_realm
+
+- name: Create ManagementRealm server-identity for SSL
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  args:
+    chdir: "{{ jboss_eap_bin_dir }}"
+  vars:
+    cmd: >-
+      /core-service=management/security-realm=ManagementRealm/server-identity=ssl:add(keystore-path={{ jboss_eap_management_https.keystore.file }},keystore-relative-to=jboss.server.config.dir,keystore-password={{ jboss_eap_management_https.keystore.storepass }},alias={{ jboss_eap_management_https.keystore.alias }})
+    management_realm: "{{ get_management_realm.stdout | parse_jbosscli_output }}"
+  when: >-
+    management_realm.result["server-identity"] == None
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Read management-interface http-interface
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/management-interface=http-interface/:read-resource
+  check_mode: no
+  changed_when: false
+  register: read_management_http_interface
+
+- name: Set management http interface secure-socket-binding
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/management-interface=http-interface:write-attribute(name=secure-socket-binding,value=management-https)
+    http_interface: "{{ read_management_http_interface.stdout | parse_jbosscli_output }}"
+  when: >-
+    http_interface.result["secure-socket-binding"] == None
+  notify: "{{ restart_jboss_handler }}"
+
+- name: Unset management http interface non-ssl socket-binding
+  become: true
+  become_user: "{{ jboss_eap_user }}"
+  command: "{{ jboss_cli }} {{ '--command=' ~ cmd | quote }}"
+  vars:
+    cmd: >-
+      /core-service=management/management-interface=http-interface:write-attribute(name=secure-socket-binding,value=management-https)
+    http_interface: "{{ read_management_http_interface.stdout | parse_jbosscli_output }}"
+  when: >-
+    http_interface.result["socket-binding"] != None and
+    jboss_eap_management_http_disable is defined and
+    jboss_eap_management_http_disable | bool
+  notify: "{{ restart_jboss_handler }}"
