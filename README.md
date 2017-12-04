@@ -17,6 +17,8 @@ The playbooks will also configure the following:
 
 This playbook aims to be a complete resource for installing BxMS and configuring it on an EAP server with any possible option that's documented. Many options are still in progress, but many more should be included. Check configuration files for details, as variables are only present if they're not placeholders - if the variable exists, so should the feature.
 
+**NOTE:** You must provide the binary archives yourself! The `files` directory must first be populated with, at a minimum, the ZIP archives for Red Hat EAP and Red Hat BPMS. No, not the JAR installer. No, not the RPM either. (The community versions, Wildfly and jBPM, haven't yet been tested and are outside the intended scope of this playbook.)
+
 ## Usage
 
 - Installation `./install.sh <environment>`
