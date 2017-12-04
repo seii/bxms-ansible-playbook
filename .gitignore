@@ -1,0 +1,12 @@
+*.zip
+.zip
+*.jar
+.jar
+*.retry
+.retry
+.DS_Store
+passwd
+.*.swp
+**/passwords.yml
+csr
+vaultpw
